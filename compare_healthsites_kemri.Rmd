@@ -1,0 +1,88 @@
+---
+title: "compare_healthsites_kemri"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(afrihealthsites)
+library(knitr) #for kable
+library(dplyr)
+
+```
+
+
+```{r, eval=FALSE, warning=FALSE}
+
+#eval = FALSE because run already and takes few mins
+
+  dfallcountries <- NULL
+
+  #takes a few minutes to do all countries
+  for( country in afcountries$name)
+  {
+    
+    dfsumm <- merge_points(country, toreturn='summary', 
+                           hs_amenity=c('clinic', 'doctors', 'pharmacy', 'hospital'),
+                           dist_same_m = 50)
+    
+    dfallcountries <- rbind(dfallcountries, dfsumm)
+  }
+
+#reformatting dataframe
+
+# rename columns containing num locations from first entry in source columns
+names(dfallcountries)[which(names(dfallcountries)=='numpoints1')] <- as.character(dfallcountries$source1[1])
+names(dfallcountries)[which(names(dfallcountries)=='numpoints2')] <- as.character(dfallcountries$source2[1])
+
+# copy and rename object
+df_hs_who_compare_50m <- dfallcountries
+
+# remove source columns
+df_hs_who_compare_50m <- df_hs_who_compare_50m[,-c(2,4)]
+
+# save object
+save(df_hs_who_compare_50m, file="data//df_hs_who_compare_50m.rda") 
+
+```
+
+```{r table_compare, echo=FALSE, asis=TRUE}
+
+load("data//df_hs_who_compare_50m.rda")
+
+#TODO check seeming error with merging
+
+#miss out threshdist column (4)
+knitr::kable(df_hs_who_compare_50m[,-4], caption="comparing healthsites and KEMRI collated data")
+
+#can I output the table as a png or similar
+
+
+```
+
+
+```{r bar_compare, echo=FALSE, asis=TRUE}
+
+df2 <- dplyr::arrange(df_hs_who_compare_50m, num_merged)
+
+positions <- df2$country
+
+ggplot(df2, aes(x=country, y=num_merged, label=num_merged)) + 
+  geom_bar(stat='identity', width=.5)  + #, aes(fill=mpg_type)
+  # scale_fill_manual(name="Mileage", 
+  #                   labels = c("Above Average", "Below Average"), 
+  #                   values = c("above"="#00ba38", "below"="#f8766d")) + 
+  # labs(subtitle="Normalised mileage from 'mtcars'", 
+  #      title= "Diverging Bars") +
+  scale_x_discrete(limits = positions) +
+  coord_flip()
+
+
+```
+
+
+
+
+
+
