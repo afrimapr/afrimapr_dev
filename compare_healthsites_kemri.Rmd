@@ -9,6 +9,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(afrihealthsites)
 library(knitr) #for kable
 library(dplyr)
+library(ggplot2)
 
 ```
 
@@ -78,11 +79,29 @@ ggplot(df2, aes(x=country, y=num_merged, label=num_merged)) +
   scale_x_discrete(limits = positions) +
   coord_flip()
 
-
 ```
 
+```{r points_compare, echo=FALSE, asis=TRUE}
 
+df2 <- dplyr::arrange(df_hs_who_compare_50m, num_merged)
 
+positions <- df2$country
 
+ggplot(df2, aes(x=country, y=num_merged, label=num_merged)) + 
+  geom_point(fill=NA)  + #, aes(fill=mpg_type)
+  geom_point(aes(y=who), col='steelblue2')  + 
+  geom_point(aes(y=healthsites), col='firebrick1')  +
+  geom_point(aes(y=num_shared), col='darkgreen', shape='+', size=2)  +   
+  # scale_fill_manual(name="Mileage", 
+  #                   labels = c("Above Average", "Below Average"), 
+  #                   values = c("above"="#00ba38", "below"="#f8766d")) + 
+  # labs(subtitle="Normalised mileage from 'mtcars'", 
+  #      title= "Diverging Bars") +
+  ylab("health facility locations from different sources") +
+  scale_x_discrete(limits = positions) +
+  theme_minimal() +
+  coord_flip()
+
+```
 
 
