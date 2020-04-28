@@ -1,0 +1,42 @@
+---
+  title: "compare_moh_namibia"
+output: html_document
+---
+  
+To compare moh data from Namibia downloaded now with Kemri collated data from 2019.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(afrihealthsites)
+library(knitr) #for kable
+library(dplyr)
+library(ggplot2)
+
+```
+
+
+```{r, eval=FALSE, warning=FALSE}
+
+# Namibia list available as JSON via API
+namibia_url <- "https://mfl.mhss.gov.na/api/facilities.json"
+
+#sfmoh_nam <- afrihealthsites("Namibia", datasource=namibia_url)
+
+library(geojsonsf)
+sflayer <- geojsonsf::geojson_sf( namibia_url )
+
+# gives this error, possibly because it's not GeoJSON ? i.e. just regular JSON
+# Error in rcpp_geojson_to_sf(geojson, expand_geometries) : 
+#   No 'type' member at object index 0 - invalid GeoJSON
+# In addition: Warning message:
+# In readLines(con) :
+#   incomplete final line found on 'https://mfl.mhss.gov.na/api/facilities.json'
+
+# todo try to read in standard JSON as a dataframe, then convert to sf by specifying the lat-lon columns
+
+
+```
+
+
+

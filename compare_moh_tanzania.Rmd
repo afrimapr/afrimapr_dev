@@ -37,10 +37,12 @@ compare_hs_sources("Tanzania", datasources=c('who',tanzania_file))
 # I added zanzibar into tanzania for kemri data
 
 # todo 
-# remove zanzibar from who
+# remove zanzibar from who for the comparison
+# compare moh & who data, e.g. number locations of different categories
 
 
 
 ```
+
 
 
