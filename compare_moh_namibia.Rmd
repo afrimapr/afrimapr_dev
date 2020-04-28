@@ -19,6 +19,8 @@ library(ggplot2)
 ```{r, eval=FALSE, warning=FALSE}
 
 # Namibia list available as JSON via API
+# API documentation here : https://mfl.mhss.gov.na/api/docs
+
 namibia_url <- "https://mfl.mhss.gov.na/api/facilities.json"
 
 #sfmoh_nam <- afrihealthsites("Namibia", datasource=namibia_url)
@@ -34,6 +36,12 @@ sflayer <- geojsonsf::geojson_sf( namibia_url )
 #   incomplete final line found on 'https://mfl.mhss.gov.na/api/facilities.json'
 
 # todo try to read in standard JSON as a dataframe, then convert to sf by specifying the lat-lon columns
+
+library(jsonlite)
+df1 <- jsonlite::fromJSON(namibia_url)
+df2 <- jsonlite::fromJSON(namibia_url, flatten=TRUE)
+
+# both of these create large nested lists that it is not obvious how to deal with ...
 
 
 ```
