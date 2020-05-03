@@ -81,8 +81,11 @@ ggplot(df2, aes(x=country, y=num_merged, label=num_merged)) +
 
 ```
 
-```{r points_compare, echo=FALSE, asis=TRUE}
+```{r points_numbers_compare, echo=FALSE, asis=TRUE}
 
+# numbers of locations from each source and overlap 
+
+# arrange in order of number merged
 df2 <- dplyr::arrange(df_hs_who_compare_50m, num_merged)
 
 positions <- df2$country
@@ -104,4 +107,34 @@ ggplot(df2, aes(x=country, y=num_merged, label=num_merged)) +
 
 ```
 
+```{r percentages_compare, echo=FALSE, asis=TRUE}
 
+# plot a point for each source and it's % of the maximum 
+# actually easier and maybe clearer way of doing is percentage of num-merged 
+
+df2 <- df_hs_who_compare_50m
+
+df2$perc_who_merg <- 100 * df2$who/df2$num_merged
+df2$perc_hs_merg <- 100 * df2$healthsites/df2$num_merged
+
+# arrange in order of % in who
+df2 <- dplyr::arrange(df2, perc_who_merg)
+
+positions <- df2$country
+
+ggplot(df2, aes(x=country, y=num_merged, label=num_merged)) + 
+  #geom_point(fill=NA)  + #, aes(fill=mpg_type)
+  geom_point(aes(y=perc_who_merg), col='steelblue2')  + 
+  geom_point(aes(y=perc_hs_merg), col='firebrick1')  +
+  #geom_point(aes(y=num_shared), col='darkgreen', shape='+', size=2)  +   
+  # scale_fill_manual(name="Mileage", 
+  #                   labels = c("Above Average", "Below Average"), 
+  #                   values = c("above"="#00ba38", "below"="#f8766d")) + 
+  # labs(subtitle="Normalised mileage from 'mtcars'", 
+  #      title= "Diverging Bars") +
+  ylab("percentage of locations from healthsites(red) & WHO-Kemri(blue) making up a merged dataset") +
+  scale_x_discrete(limits = positions) +
+  theme_minimal() +
+  coord_flip()
+
+```
