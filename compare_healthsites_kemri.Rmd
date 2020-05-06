@@ -14,7 +14,7 @@ library(ggplot2)
 ```
 
 
-```{r, eval=FALSE, warning=FALSE}
+```{r, eval=FALSE, echo=FALSE, warning=FALSE}
 
 #eval = FALSE because run already and takes few mins
 
@@ -63,7 +63,7 @@ knitr::kable(df_hs_who_compare_50m[,-4], caption="comparing healthsites and KEMR
 ```
 
 
-```{r bar_compare, echo=FALSE, asis=TRUE}
+```{r bar_compare, eval=FALSE,echo=FALSE, asis=TRUE}
 
 df2 <- dplyr::arrange(df_hs_who_compare_50m, num_merged)
 
@@ -81,33 +81,79 @@ ggplot(df2, aes(x=country, y=num_merged, label=num_merged)) +
 
 ```
 
-```{r points_numbers_compare, echo=FALSE, asis=TRUE}
+Numbers of locations from each data source and locations that are shared based on proximity. 
 
-# numbers of locations from each source and overlap 
+```{r points_numbers_compare, echo=FALSE, warnings=FALSE, asis=TRUE, fig.width=9, fig.height=9}
 
 # arrange in order of number merged
 df2 <- dplyr::arrange(df_hs_who_compare_50m, num_merged)
 
 positions <- df2$country
 
-ggplot(df2, aes(x=country, y=num_merged, label=num_merged)) + 
-  geom_point(fill=NA)  + #, aes(fill=mpg_type)
-  geom_point(aes(y=who), col='steelblue2')  + 
-  geom_point(aes(y=healthsites), col='firebrick1')  +
-  geom_point(aes(y=num_shared), col='darkgreen', shape='+', size=2)  +   
-  # scale_fill_manual(name="Mileage", 
-  #                   labels = c("Above Average", "Below Average"), 
-  #                   values = c("above"="#00ba38", "below"="#f8766d")) + 
+# ggplot(df2, aes(x=country, y=num_merged, label=num_merged)) +
+#   geom_point(fill=NA)  + #, aes(fill=mpg_type)
+#   geom_point(aes(y=who), col='steelblue2')  +
+#   geom_point(aes(y=healthsites), col='firebrick1')  +
+#   geom_point(aes(y=num_shared), col='darkgreen', shape='+', size=2)  +
+#   ylab("health facility locations from different sources") +
+#   scale_x_discrete(limits = positions) +
+#   theme_minimal() +
+#   coord_flip()
+
+# alternative tidyer method using pivot_longer() allows legend
+
+# pivot longer to structure data for plot
+df3 <- tidyr::pivot_longer(df2, -c(country, threshdistm), names_to = "measure", values_to = "count")
+
+# filter just rows wanted in plot
+df4 <- dplyr::filter(df3,measure %in% c('healthsites','who','num_shared','num_merged'))
+
+# set factor order otherwise colours are wrong
+df4$measure <- factor(df4$measure,levels=c("who", "healthsites", "num_shared", "num_merged"))
+
+# set colours
+point_cols <- c("who"='steelblue2', "healthsites"='firebrick1', "num_shared"='green', "num_merged"='black')
+
+ggplot(df4, aes(x=country, y=count, colour=measure)) + 
+  geom_point(alpha = 0.5) +
+  scale_colour_manual(name="data source",
+                    labels = c("WHO-KEMRI", "healthsites.io","shared","merged"),
+                    values = point_cols) +
   # labs(subtitle="Normalised mileage from 'mtcars'", 
   #      title= "Diverging Bars") +
-  ylab("health facility locations from different sources") +
+  ylab("number of health facility locations") +
   scale_x_discrete(limits = positions) +
+  #scale_y_log10() +
   theme_minimal() +
   coord_flip()
 
 ```
 
-```{r percentages_compare, echo=FALSE, asis=TRUE}
+Numbers of locations from each data source and locations that are shared based on proximity. 
+Log scale to show for smaller countries too.
+
+```{r points_numbers_log_compare, echo=FALSE, warnings=FALSE, asis=TRUE, fig.width=9, fig.height=9}
+
+# log version
+ggplot(df4, aes(x=country, y=count, colour=measure)) + 
+  geom_point(alpha = 0.5) +
+  scale_colour_manual(name="data source",
+                    labels = c("WHO-KEMRI", "healthsites.io","shared","merged"),
+                    values = point_cols) +
+  # labs(subtitle="Normalised mileage from 'mtcars'", 
+  #      title= "Diverging Bars") +
+  ylab("number of health facility locations") +
+  scale_x_discrete(limits = positions) +
+  scale_y_log10(limits=c(50,30000)) +
+  #ylim(c(10,15000)) +
+  theme_minimal() +
+  coord_flip()
+  
+```
+
+Percentage contribution of locations from each source to a merged dataset.  
+
+```{r percentages_compare, echo=FALSE, warnings=FALSE, asis=TRUE, fig.width=9, fig.height=9}
 
 # plot a point for each source and it's % of the maximum 
 # actually easier and maybe clearer way of doing is percentage of num-merged 
@@ -122,17 +168,29 @@ df2 <- dplyr::arrange(df2, perc_who_merg)
 
 positions <- df2$country
 
-ggplot(df2, aes(x=country, y=num_merged, label=num_merged)) + 
-  #geom_point(fill=NA)  + #, aes(fill=mpg_type)
-  geom_point(aes(y=perc_who_merg), col='steelblue2')  + 
-  geom_point(aes(y=perc_hs_merg), col='firebrick1')  +
-  #geom_point(aes(y=num_shared), col='darkgreen', shape='+', size=2)  +   
-  # scale_fill_manual(name="Mileage", 
-  #                   labels = c("Above Average", "Below Average"), 
-  #                   values = c("above"="#00ba38", "below"="#f8766d")) + 
+# ggplot(df2, aes(x=country, y=num_merged, label=num_merged)) + 
+#   #geom_point(fill=NA)  + #, aes(fill=mpg_type)
+#   geom_point(aes(y=perc_who_merg), col='steelblue2')  + 
+#   geom_point(aes(y=perc_hs_merg), col='firebrick1')  +
+#   ylab("percentage of locations from healthsites(red) & WHO-Kemri(blue) making up a merged dataset") +
+#   scale_x_discrete(limits = positions) +
+#   theme_minimal() +
+#   coord_flip()
+
+# alternative tidyer method using pivot_longer() allows legend
+
+df3 <- tidyr::pivot_longer(df2, -c(country, threshdistm), names_to = "measure", values_to = "count")
+
+df4 <- dplyr::filter(df3,measure %in% c('perc_who_merg','perc_hs_merg'))
+
+ggplot(df4, aes(x=country, y=count, colour=measure)) + 
+  geom_point() +
+  scale_colour_manual(name="data source",
+                    labels = c("WHO-KEMRI", "healthsites.io"),
+                    values = c("perc_who_merg"='steelblue2', "perc_hs_merg"='firebrick1')) +
   # labs(subtitle="Normalised mileage from 'mtcars'", 
   #      title= "Diverging Bars") +
-  ylab("percentage of locations from healthsites(red) & WHO-Kemri(blue) making up a merged dataset") +
+  ylab("percentage of locations making up a merged dataset") +
   scale_x_discrete(limits = positions) +
   theme_minimal() +
   coord_flip()
