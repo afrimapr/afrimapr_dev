@@ -1,0 +1,32 @@
+---
+title: "senegal"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(afrihealthsites)
+library(knitr) #for kable
+library(dplyr)
+library(ggplot2)
+
+```
+
+To compare Senegal health facility data from healthsites.io, WHO and other potential sources. 
+
+
+```{r, eval=TRUE, echo=FALSE, warning=FALSE}
+
+
+sfsen_who <- afrihealthsites::afrihealthsites('senegal', datasource = 'who', plot = FALSE)
+dfsen_who <- afrihealthsites::afrihealthsites('senegal', datasource = 'who', plot = FALSE, returnclass = 'dataframe')
+
+sfsen_hs <- afrihealthsites::afrihealthsites('senegal', datasource = 'who', plot = FALSE)
+
+
+#save as csv for Mark
+#write.csv(dfsen_who, file='senegal-health-facilities-who-2020-05.csv')
+
+```
+
