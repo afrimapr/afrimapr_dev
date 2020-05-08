@@ -1,2 +1,2 @@
-# temp_code_data
-provisional code and data
+# afrimapr_dev
+provisional code and data for the afrimapr project
