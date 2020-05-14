@@ -31,7 +31,10 @@ tanzania_file <- "data-raw\\health-facilities-moh-tanzania.csv"
 # 9378 obs
 
 # just view MoH data
-sfmoh_tza <- afrihealthsites("Tanzania", datasource=tanzania_file)
+sfmoh_tza <- afrihealthsites("Tanzania", datasource=tanzania_file,
+                             type_column = 'Facility Type',
+                             label_column = 'Facility Name',
+                             lonlat_columns = c("Longitude", "Latitude"))
 
 #testing filter
 #sfmoh_tza <- afrihealthsites("Tanzania", datasource=tanzania_file, type_filter='Dispensary')
@@ -43,7 +46,12 @@ sfmoh_tza <- afrihealthsites("Tanzania", datasource=tanzania_file)
 #sfmoh_tza <- afrihealthsites("Tanzania", datasource=tanzania_file, type_filter='!Dispensary')
 
 # plot moh vs kemri on a map
-compare_hs_sources("Tanzania", datasources=c('who',tanzania_file))
+# this does work now but only because the defaults are set up for Tanzania
+# todo sort code so will work for other countries
+compare_hs_sources("Tanzania", datasources=c('who',tanzania_file),
+                   type_column = 'Facility Type',
+                   label_column = 'Facility Name')
+                   #lonlat_columns = c("Longitude", "Latitude"))
 
 # most overlap but not total
 
@@ -67,6 +75,7 @@ ggtza <- facility_types("tanzania",
                         lonlat_columns = c("Longitude", "Latitude"))
 plot(ggtza)
 
+
 #with filter
 ggtza <- facility_types("tanzania", 
                         datasource=tanzania_file,
@@ -75,6 +84,7 @@ ggtza <- facility_types("tanzania",
                         lonlat_columns = c("Longitude", "Latitude"))
 plot(ggtza)
 
+#TODO allow negative filter, e.g. to exclude dispensary
 
 ```
 
