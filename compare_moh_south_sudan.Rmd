@@ -1,9 +1,9 @@
 ---
-title: "compare_moh_tanzania"
+title: "compare_moh_south_sudan"
 output: html_document
 ---
 
-To compare moh data from Tanzania downloaded now with Kemri collated data from 2019.
+To compare moh data from South Sudan downloaded now with Kemri collated data from 2019.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -18,20 +18,32 @@ library(ggplot2)
 
 ```{r, eval=FALSE, warning=FALSE}
 
-tanzania_file <- "data-raw\\health-facilities-moh-tanzania.csv"
+ssudan_file <- "data-raw\\south_sudan_facility_info_2020-05-13.csv"
 
 # test reading in file
-#tst <- read.csv(tanzania_file, as.is=TRUE, check.names=FALSE)
+dfssudan <- read.csv(ssudan_file, as.is=TRUE, check.names=FALSE)
+
+
+#ssudan has a single location column
+# fair few coords at null island 0,0
+# seemingly some NAs, or maybe problem with me trying to pass single Location rather than 2 columns
+which(is.na(dfssudan$Location))
+
+sfssudan <- sf::st_as_sf(dfssudan, coords='Location')
+
+dfs <- head(dfssudan)
+
+sfssudan <- sf::st_as_sf(dfs, coords='Location')
 
 ```
 
 
-```{r map_moh_tanzania, eval=FALSE, warning=FALSE}
+```{r map_moh_ssudan, eval=FALSE, warning=FALSE}
 
 # 9378 obs
 
 # just view MoH data
-sfmoh_tza <- afrihealthsites("Tanzania", datasource=tanzania_file)
+sfmoh <- afrihealthsites("South Sudan", datasource=ssudan_file, lonlat_columns = "Location")
 
 #testing filter
 #sfmoh_tza <- afrihealthsites("Tanzania", datasource=tanzania_file, type_filter='Dispensary')
@@ -43,7 +55,7 @@ sfmoh_tza <- afrihealthsites("Tanzania", datasource=tanzania_file)
 #sfmoh_tza <- afrihealthsites("Tanzania", datasource=tanzania_file, type_filter='!Dispensary')
 
 # plot moh vs kemri on a map
-compare_hs_sources("Tanzania", datasources=c('who',tanzania_file))
+compare_hs_sources("south sudan", datasources=c('who',ssudan_file))
 
 # most overlap but not total
 
@@ -61,19 +73,12 @@ Plot counts of facility types from MoH data
 ```{r compare_type_frequencies, echo=FALSE, warnings=FALSE, asis=TRUE, fig.width=9, fig.height=9}
 
 #
-ggtza <- facility_types("tanzania", 
-                        datasource=tanzania_file,
+ggtza <- facility_types("south sudan", 
+                        datasource=ssudan_file,
                         type_column = "Facility Type",
                         lonlat_columns = c("Longitude", "Latitude"))
 plot(ggtza)
 
-#with filter
-ggtza <- facility_types("tanzania", 
-                        datasource=tanzania_file,
-                        type_column = "Facility Type",
-                        type_filter=c('Dispensary','Health Center'),
-                        lonlat_columns = c("Longitude", "Latitude"))
-plot(ggtza)
 
 
 ```

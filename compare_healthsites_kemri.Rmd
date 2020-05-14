@@ -196,3 +196,42 @@ ggplot(df4, aes(x=country, y=count, colour=measure)) +
   coord_flip()
 
 ```
+
+Compare per country distributions of facility types between who and healthsites 
+
+```{r compare_type_frequencies, echo=FALSE, warnings=FALSE, asis=TRUE, fig.width=9, fig.height=9}
+
+# plan to add this as a function to healthsites
+
+# start with function to work on a single source
+
+country <- 'Togo'
+type_filter = c('clinic', 'doctors', 'pharmacy', 'hospital')
+type_filter = 'all'
+datasource = 'healthsites' #'who'
+
+sf1 <- afrihealthsites(country, datasource = datasource, plot=FALSE, hs_amenity=type_filter) #, who_type=who_type)
+
+tot_facilities <- nrow(sf1)
+
+# ggplot(sf1) + 
+#   geom_bar(aes(y = amenity)) 
+
+# add text labels of frequency
+ggplot(sf1, aes(y = amenity, fill = amenity)) + 
+  geom_bar(show.legend=FALSE) + 
+  theme_minimal() +
+  geom_text(stat='count', aes(label=..count..), hjust=-1) +
+  labs(title=paste("Selected facility types from", datasource), 
+       subtitle= paste("Total =",tot_facilities)) +
+  NULL
+
+#TODO repeat for all countries
+#add to function
+#add to shiny app
+#sum the numbers for all categories & display somehow
+
+
+```
+
+
