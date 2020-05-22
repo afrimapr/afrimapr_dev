@@ -21,19 +21,33 @@ library(ggplot2)
 ssudan_file <- "data-raw\\south_sudan_facility_info_2020-05-13.csv"
 
 # test reading in file
-dfssudan <- read.csv(ssudan_file, as.is=TRUE, check.names=FALSE)
+dfssd <- read.csv(ssudan_file, as.is=TRUE, check.names=FALSE)
 
 
-#ssudan has a single location column
+#ssudan has a single location column containing coords divided by commas as strings 
 # fair few coords at null island 0,0
 # seemingly some NAs, or maybe problem with me trying to pass single Location rather than 2 columns
-which(is.na(dfssudan$Location))
+#which(is.na(dfssudan$Location))
+#sfssudan <- sf::st_as_sf(dfssudan, coords='Location')
 
-sfssudan <- sf::st_as_sf(dfssudan, coords='Location')
+#dfs <- head(dfssudan)
 
-dfs <- head(dfssudan)
+#divide into 2 columns
+dfcoords <- as.data.frame(stringr::str_split(dfssd$Location,", ",simplify=TRUE), stringsAsFactors = FALSE)
+#change to numeric
+dfcoords <- lapply(dfcoords,as.numeric)
+#name columns
+#names(dfcoords) <- c("Longitude", "Latitude")
+names(dfcoords) <- c("Latitude", "Longitude")
+#bind back onto df
+dfssd <- cbind(dfssd, dfcoords)
 
-sfssudan <- sf::st_as_sf(dfs, coords='Location')
+sfssd <- sf::st_as_sf(dfssd, coords=c("Longitude", "Latitude"), crs = 4326)
+
+mapview::mapview(sfssd)
+
+#save
+save(sfssd, file="sfssd.rda")
 
 ```
 
@@ -44,6 +58,11 @@ sfssudan <- sf::st_as_sf(dfs, coords='Location')
 
 # just view MoH data
 sfmoh <- afrihealthsites("South Sudan", datasource=ssudan_file, lonlat_columns = "Location")
+
+# try passing just pre-read sf object 
+sfmoh <- afrihealthsites("South Sudan", datasource=sfssd,                              
+                         type_column = 'type',
+                         label_column = 'Facility')
 
 #testing filter
 #sfmoh_tza <- afrihealthsites("Tanzania", datasource=tanzania_file, type_filter='Dispensary')
@@ -72,12 +91,11 @@ compare_hs_sources("south sudan", datasources=c('who',ssudan_file))
 Plot counts of facility types from MoH data
 ```{r compare_type_frequencies, echo=FALSE, warnings=FALSE, asis=TRUE, fig.width=9, fig.height=9}
 
-#
-ggtza <- facility_types("south sudan", 
-                        datasource=ssudan_file,
-                        type_column = "Facility Type",
-                        lonlat_columns = c("Longitude", "Latitude"))
-plot(ggtza)
+# trying to pass the sf object directly
+ggssd <- facility_types("south sudan", 
+                        datasource=sfssd,
+                        type_column = "type")
+plot(ggssd)
 
 
 
