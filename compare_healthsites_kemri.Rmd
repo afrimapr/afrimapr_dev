@@ -1,6 +1,7 @@
 ---
 title: "compare_healthsites_kemri"
-output: html_document
+#output: html_document
+output: word_document
 ---
 
 ```{r setup, include=FALSE}
@@ -10,7 +11,21 @@ library(afrihealthsites)
 library(knitr) #for kable
 library(dplyr)
 library(ggplot2)
+library(patchwork)
 
+```
+
+```{r, eval=TRUE, include=FALSE}
+#set to eval=TRUE to make figs for submission
+# options to create final publication quality figures
+# word doc summarises & figs get stored
+opts_chunk$set(dev="tiff",
+               dev.args=list(compression="lzw"),
+               dpi=300,
+               cache=FALSE,
+               fig.path='figs/',
+               fig.width=8.5,
+               fig.height=10)
 ```
 
 
@@ -48,16 +63,21 @@ save(df_hs_who_compare_50m, file="data//df_hs_who_compare_50m.rda")
 
 ```
 
-```{r table_compare, echo=FALSE, asis=TRUE}
+```{r, echo=FALSE, asis=TRUE}
+
+# load data created above
 
 load("data//df_hs_who_compare_50m.rda")
+
+```
+
+
+```{r table_compare, eval=FALSE, echo=FALSE, asis=TRUE}
 
 #TODO check seeming error with merging
 
 #miss out threshdist column (4)
 knitr::kable(df_hs_who_compare_50m[,-4], caption="comparing healthsites and KEMRI collated data")
-
-#can I output the table as a png or similar
 
 
 ```
@@ -81,9 +101,124 @@ ggplot(df2, aes(x=country, y=num_merged, label=num_merged)) +
 
 ```
 
+Numbers by country in the two main datasets
+
+```{r points_who_hs, echo=FALSE, warnings=FALSE, asis=TRUE, fig.width=9, fig.height=9}
+
+# arrange in order of who-kemri
+df2 <- dplyr::arrange(df_hs_who_compare_50m, who, -healthsites)
+
+positions <- df2$country
+
+# pivot longer to structure data for plot
+df3 <- tidyr::pivot_longer(df2, -c(country, threshdistm), names_to = "measure", values_to = "count")
+
+# filter just rows wanted in plot
+df4 <- dplyr::filter(df3,measure %in% c('healthsites','who'))
+
+# set factor order otherwise colours are wrong
+df4$measure <- factor(df4$measure,levels=c("who", "healthsites"))
+
+# set colours
+point_cols <- c("who"='steelblue2', "healthsites"='firebrick1')
+
+ggplot(df4, aes(x=country, y=count, colour=measure)) + 
+  geom_point(alpha = 0.5) +
+  scale_colour_manual(name="data source",
+                    labels = c("WHO-KEMRI", "healthsites.io"),
+                    values = point_cols) +
+  # labs(subtitle="Normalised mileage from 'mtcars'", 
+  #      title= "Diverging Bars") +
+  ylab("number of health facility locations") +
+  scale_x_discrete(limits = positions) +
+  #scale_y_log10() +
+  theme_minimal() +
+  coord_flip()
+
+```
+
+Numbers by country in the three main datasets
+(moh numbers hardcoded in based on Anelda's analysis)
+TODO add code to count facilities from the data
+
+```{r points_who_hs_moh, echo=FALSE, warnings=FALSE, asis=TRUE, fig.width=9, fig.height=9}
+
+
+# filter just rows wanted in plot
+df4 <- dplyr::filter(df3,measure %in% c('healthsites','who'))
+
+# ADD facility numbers from MoHs hardcoded for now
+# TODO add code from Anelda to derive these from the data
+dfmoh <- data.frame(country=c("Kenya","Malawi","Namibia","Rwanda","South Sudan","United Republic of Tanzania","Zambia"),
+                    threshdistm=NA,
+                    measure="moh",
+                    count=c(12391,1546,589,1525,2889,10807,2828))
+
+df5 <- rbind(df4,dfmoh)
+
+# set factor order otherwise colours are wrong
+df5$measure <- factor(df5$measure,levels=c("who", "healthsites","moh"))
+
+# set colours
+#point_cols <- c("who"='steelblue2', "healthsites"='firebrick1', "moh"='green3')
+point_cols <- c('steelblue2', 'firebrick1','green3')
+
+ggplot(df5, aes(x=country, y=count, colour=measure)) + 
+  geom_point(alpha = 0.7) +
+  scale_colour_manual(name="data source",
+                    labels = c("WHO-KEMRI", "healthsites.io", "National MFL"),
+                    values = point_cols) +
+  #scale_shape_manual(values=c(1,1,2))+
+  # labs(subtitle="Normalised mileage from 'mtcars'", 
+  #      title= "Diverging Bars") +
+  ylab("number of health facility locations") +
+  scale_x_discrete(limits = positions) +
+  #scale_y_log10() +
+  theme_minimal() +
+  coord_flip()
+
+```
+
+Numbers by country in the two main datasets and estimate of shared
+
+```{r points_who_hs_share, echo=FALSE, warnings=FALSE, asis=TRUE, fig.width=9, fig.height=9}
+
+# arrange in order of who-kemri
+df2 <- dplyr::arrange(df_hs_who_compare_50m, who)
+
+positions <- df2$country
+
+# pivot longer to structure data for plot
+df3 <- tidyr::pivot_longer(df2, -c(country, threshdistm), names_to = "measure", values_to = "count")
+
+# filter just rows wanted in plot
+df4 <- dplyr::filter(df3,measure %in% c('healthsites','who','num_shared'))
+
+# set factor order otherwise colours are wrong
+df4$measure <- factor(df4$measure,levels=c("who", "healthsites", "num_shared"))
+
+# set colours
+point_cols <- c("who"='steelblue2', "healthsites"='firebrick1', "num_shared"='green')
+
+ggplot(df4, aes(x=country, y=count, colour=measure)) + 
+  geom_point(alpha = 0.5) +
+  scale_colour_manual(name="data source",
+                    labels = c("WHO-KEMRI", "healthsites.io","shared estimate"),
+                    values = point_cols) +
+  # labs(subtitle="Normalised mileage from 'mtcars'", 
+  #      title= "Diverging Bars") +
+  ylab("number of health facility locations") +
+  scale_x_discrete(limits = positions) +
+  #scale_y_log10() +
+  theme_minimal() +
+  coord_flip()
+
+```
+
+
 Numbers of locations from each data source and locations that are shared based on proximity. 
 
-```{r points_numbers_compare, echo=FALSE, warnings=FALSE, asis=TRUE, fig.width=9, fig.height=9}
+```{r points_who_hs_share_merge, echo=FALSE, warnings=FALSE, asis=TRUE, fig.width=9, fig.height=9}
 
 # arrange in order of number merged
 df2 <- dplyr::arrange(df_hs_who_compare_50m, num_merged)
@@ -226,12 +361,62 @@ ggplot(sf1, aes(y = amenity, fill = amenity)) +
        subtitle= paste("Total =",tot_facilities)) +
   NULL
 
-#TODO repeat for all countries
-#add to function
-#add to shiny app
-#sum the numbers for all categories & display somehow
+```
+
+```{r facility_types_hs_who9, echo=FALSE, warnings=FALSE, asis=TRUE, fig.width=9, fig.height=9}
+
+country <- 'all'
+
+# https://wiki.openstreetmap.org/wiki/Tag:amenity%3Dclinic
+# healthsites : clinic = > 10 doctors
+
+hs_amenity <- c('clinic', 'doctors', 'pharmacy', 'hospital')
+
+#WHO9 : I think I could cut it down further from 9
+sfwhoall <- afrihealthsites('all', datasource = 'who', plot=FALSE )
+whocats9 <- unique(sfwhoall$facility_type_9)
+whocatsless <- whocats9[which(! (whocats9=='Polyclinic' | whocats9=='Maternity' | whocats9=='Health station' ))]
+
+#a check on the 240 NAs in reclassed WHO data
+sfwhoNA <- sfwhoall[which(is.na(sfwhoall$facility_type_9)),]
+unique(sfwhoNA[['Facility type']]) # gives 17 types that appear not to have been converted
+#"Unites de Santé de village"  "Postos Sanitários"           "Hospitais Regionais"         "Hospitais Centrais"
+#"Centre Médico-Chirurgical"   "Centre Médico-Urbain"        "Poste De Santé"              "Clinic without Maternity"
+#"Public Health Unit"          "Clinic with Maternity"       "Health post"                 "Area Health Centre"         
+#"Family Health Clinic"        "Medi-Clinic"                 "Hospitais"                   "Postos de Saúde Comunitária"
+#"Primary Health Care Unit +" 
+#TODO add these into who_type_lookup
+
+#type_filter <- whocatsless  
+
+    gg1 <- afrihealthsites::facility_types(country,
+                                    datasource = 'healthsites',
+                                    plot = TRUE,
+                                    type_filter = hs_amenity,
+                                    brewer_palette = "YlGn" )
+    
+    # using consistent 9 class facility types for WHO data, specify type_column='facility_type_9'
+    gg2 <- afrihealthsites::facility_types(country,
+                                           datasource = 'who',
+                                           plot = TRUE,
+                                           type_filter = whocatsless,
+                                           type_column = 'facility_type_9',
+                                           brewer_palette = "BuPu" )
+    
+
+      max_x1 <- max(ggplot_build(gg1)$layout$panel_params[[1]]$x$continuous_range)
+      max_x2 <- max(ggplot_build(gg2)$layout$panel_params[[1]]$x$continuous_range)
+      #set xmax for both plots to this
+      gg1 <- gg1 + xlim(c(0,max(max_x1,max_x2, na.rm=TRUE)))
+      gg2 <- gg2 + xlim(c(0,max(max_x1,max_x2, na.rm=TRUE)))
+
+      #set size of y plots to be dependent on num cats
+      #y axis has cats, this actually gets max of y axis, e.g. for 6 cats is 6.6
+      max_y1 <- max(ggplot_build(gg1)$layout$panel_params[[1]]$y$continuous_range)
+      max_y2 <- max(ggplot_build(gg2)$layout$panel_params[[1]]$y$continuous_range)
+
+      #setting heights to num cats makes bar widths constant between cats
+      gg1 / gg2 + plot_layout(heights=c(max_y1, max_y2)) #patchwork    
 
 
 ```
-
-

@@ -1,12 +1,16 @@
-# Load necessary libraries
+
 library(googlesheets4)
 
 # Read data for lookup table from Google Sheet
 # Authorisation needed - run interactively
-lookup_tb <- read_sheet("https://docs.google.com/spreadsheets/d/1esITXJxb2ph63sA3nPXmK795PUs34Vsu16YGSIGJ47U/edit?usp=sharing")
+who_type_lookup <- read_sheet("https://docs.google.com/spreadsheets/d/1esITXJxb2ph63sA3nPXmK795PUs34Vsu16YGSIGJ47U/edit?usp=sharing")
+
+names(who_type_lookup) <- c('country','type_who','facility_type_9')
 
 # Save as .rda
-save(lookup_tb, file = "data/facility_type_lookup.rda" )
+save(who_type_lookup, file = "data/who_type_lookup.rda" )
+
+
 
 #initial attempt at lookup with shortnames
 library(afrihealthsites)
@@ -15,10 +19,9 @@ fts <- lookup_tb
 
 names(fts) <- c('country','type_who','type_new')
 
-
 sftogo <- afrihealthsites::afrihealthsites('togo', datasource = 'who', plot=FALSE)
 
-#sftogo$`Facility type`
+sftogo$facility_type_9 <- who_type_lookup$facility_type_9[ match(sftogo$`Facility type`,who_type_lookup$facility_type_9) ]
 
 #match returns a vector of the positions of (first) matches of its first argument in its second.
 

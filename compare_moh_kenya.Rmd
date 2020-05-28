@@ -1,0 +1,111 @@
+---
+title: "compare_moh_kenya"
+output: html_document
+#just took tanzania & did find/replace tanzania/kenya ken/ken
+---
+
+To compare moh data from kenya downloaded now with Kemri collated data from 2019.
+
+NOTE Kenya MFL MoH download does not have coordinates.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(afrihealthsites)
+library(knitr) #for kable
+library(dplyr)
+library(ggplot2)
+
+```
+
+
+```{r, eval=TRUE, warning=FALSE}
+
+kenya_file <- "data-raw\\health-facilities-moh-kenya.csv"
+
+# test reading in file
+dfken <- read.csv(kenya_file, as.is=TRUE, check.names=FALSE)
+
+names(dfken)
+#  [1] "Code"                   "Name"                   "Officialname"           "Registration_number"   
+#  [5] "Keph level"             "Facility type"          "Facility_type_category" "Owner"                 
+#  [9] "Owner type"             "Regulatory body"        "Beds"                   "Cots"                  
+# [13] "County"                 "Constituency"           "Sub county"             "Ward"                  
+# [17] "Operation status"       "Open_whole_day"         "Open_public_holidays"   "Open_weekends"         
+# [21] "Open_late_night"        "Service_names"          "Approved"               "Public visible"        
+# [25] "Closed" 
+
+
+#29 cats
+unique(dfken[['Facility type']])
+#9 cats
+unique(dfken[['Facility_type_category']])
+
+nrow(dfken)
+# 12378
+
+```
+
+
+```{r map_moh_kenya, eval=FALSE, warning=FALSE}
+
+#eval=FALSE because no coordinates
+
+# just view MoH data
+sfmoh_ken <- afrihealthsites("kenya", datasource=kenya_file,
+                             type_column = 'Facility_type_category',
+                             label_column = 'Facility Name',
+                             lonlat_columns = c("Longitude", "Latitude"))
+
+#testing filter
+#sfmoh_ken <- afrihealthsites("kenya", datasource=kenya_file, type_filter='Dispensary')
+#filter with two types
+#sfmoh_ken <- afrihealthsites("kenya", datasource=kenya_file, type_filter=c('Dispensary','Health Center'))
+
+#trying to remove one from selection doesn't work
+#sfmoh_ken <- afrihealthsites("kenya", datasource=kenya_file, type_filter='-Dispensary')
+#sfmoh_ken <- afrihealthsites("kenya", datasource=kenya_file, type_filter='!Dispensary')
+
+# plot moh vs kemri on a map
+# this does work now but only because the defaults are set up for kenya
+# todo sort code so will work for other countries
+compare_hs_sources("kenya", datasources=c('who',kenya_file),
+                   type_column = 'Facility Type',
+                   label_column = 'Facility Name')
+                   #lonlat_columns = c("Longitude", "Latitude"))
+
+
+
+
+```
+
+Plot counts of facility types from MoH data
+```{r ken_moh_facility_types, echo=FALSE, warnings=FALSE, asis=TRUE, fig.width=9, fig.height=9}
+
+#
+ggken <- facility_types("kenya", 
+                        datasource=kenya_file,
+                        type_column = 'Facility_type_category',
+                        lonlat_columns = NULL) #specifying that there are no coords
+plot(ggken)
+
+# defined facility levels
+ggken <- facility_types("kenya", 
+                        datasource=kenya_file,
+                        type_column = "Keph level",
+                        lonlat_columns = NULL) #specifying that there are no coords
+plot(ggken)
+
+
+#number of beds - but the default plot doesn't cope well with the numeric data
+ggken <- facility_types("kenya", 
+                        datasource=kenya_file,
+                        type_column = 'Beds',
+                        lonlat_columns = NULL) #specifying that there are no coords
+plot(ggken)
+
+
+
+```
+
+

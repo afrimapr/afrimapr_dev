@@ -16,7 +16,7 @@ library(ggplot2)
 ```
 
 
-```{r, eval=FALSE, warning=FALSE}
+```{r, eval=TRUE, warning=FALSE}
 
 tanzania_file <- "data-raw\\health-facilities-moh-tanzania.csv"
 
