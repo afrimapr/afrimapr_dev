@@ -370,9 +370,15 @@ country <- 'all'
 # https://wiki.openstreetmap.org/wiki/Tag:amenity%3Dclinic
 # healthsites : clinic = > 10 doctors
 
-hs_amenity <- c('clinic', 'doctors', 'pharmacy', 'hospital')
+hs_amenity <- c('clinic', 'doctors', 'pharmacy', 'hospital','dentist')
 
 #WHO9 : I think I could cut it down further from 9
+#also whocats9 from the table actually has 12 cats !
+whocats9
+#  "Hospital"              "Health Centre"         "Health Post"           "Maternity"             "Community Health Unit"
+#  "Dispensary"            "Medical Center"        "Health Clinic"         NA                      "Polyclinic"           
+#  "Health Station"        "Health Hut" 
+#should be:  hospital, health clinic, dispensary, community health unit, health post, health center, maternity ward, medical center, or polyclinic
 sfwhoall <- afrihealthsites('all', datasource = 'who', plot=FALSE )
 whocats9 <- unique(sfwhoall$facility_type_9)
 whocatsless <- whocats9[which(! (whocats9=='Polyclinic' | whocats9=='Maternity' | whocats9=='Health station' ))]
@@ -392,6 +398,7 @@ unique(sfwhoNA[['Facility type']]) # gives 17 types that appear not to have been
     gg1 <- afrihealthsites::facility_types(country,
                                     datasource = 'healthsites',
                                     plot = TRUE,
+                                    plot_title = "A. healthsites.io",
                                     type_filter = hs_amenity,
                                     brewer_palette = "YlGn" )
     
@@ -399,6 +406,7 @@ unique(sfwhoNA[['Facility type']]) # gives 17 types that appear not to have been
     gg2 <- afrihealthsites::facility_types(country,
                                            datasource = 'who',
                                            plot = TRUE,
+                                           plot_title = "B. WHO-KWTRP reclassified",
                                            type_filter = whocatsless,
                                            type_column = 'facility_type_9',
                                            brewer_palette = "BuPu" )
@@ -417,6 +425,48 @@ unique(sfwhoNA[['Facility type']]) # gives 17 types that appear not to have been
 
       #setting heights to num cats makes bar widths constant between cats
       gg1 / gg2 + plot_layout(heights=c(max_y1, max_y2)) #patchwork    
+
+```
+
+```{r hs_beds_doctors, echo=FALSE, warnings=FALSE, asis=TRUE, fig.width=9, fig.height=9}
+
+# try to count the numbers of attribute entries in healthsites data
+country <- 'all'
+
+sfhsall <- afrihealthsites(country, datasource = 'healthsites', plot=FALSE)
+
+ids_beds <- which((sfhsall$beds != "")) #469
+ids_docs <- which((sfhsall$staff_doctors != "")) #890
+ids_nurs <- which((sfhsall$staff_nurses != "")) #934
+
+934/56854 #1.64%
+
+```
+
+```{r zambia_moh, echo=FALSE, warnings=FALSE, asis=TRUE, fig.width=9, fig.height=9}
+
+url_zambia <- "https://raw.githubusercontent.com/MOH-Zambia/MFL/master/geography/data/facility_list.csv"
+
+#problem with data that there are some NAs in coords columns 
+#this fixes it
+dfzambia <- read.csv(url_zambia)
+dfzambia <- dfzambia[-which(is.na(dfzambia$longitude)),]
+
+sfzambia <- afrihealthsites('zambia',
+                            datasource = dfzambia,
+                            type_column = 'facility_type', 
+                            label_column = 'name', 
+                            lonlat_columns = c("longitude", "latitude"))
+
+#be good to get comparison of maps with who working
+datasources <- list('who', dfzambia)
+
+compare_hs_sources('zambia', datasources=datasources, type_column = 'facility_type', label_column = 'name', lonlat_columns = c("longitude", "latitude"))
+
+#nice comparison between MFL and WHO - similar, extra types in MFL 
+#but bit complicated to compare for the paper
+facility_types('zambia',datasource=dfzambia,type_column='facility_type',label_column='name',lonlat_columns = NULL)
+facility_types('zambia',datasource='who')
 
 
 ```
