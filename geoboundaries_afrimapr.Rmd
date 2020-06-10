@@ -1,0 +1,60 @@
+---
+title: "geoboundaries_afrimapr"
+output: html_document
+---
+
+Experimenting with geoboundaries for Africa, partly in response to Dave Kennedy via twitter .
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(afriadmin) # partly just to get at country list, also potential to compare with other boundaries
+library(mapview)
+library(knitr) #for kable
+library(dplyr)
+library(ggplot2)
+
+# install.packages("remotes")
+remotes::install_gitlab("dickoa/rgeoboundaries")
+library(rgeoboundaries)
+
+```
+
+
+```{r, eval=TRUE, warning=FALSE}
+
+#' @param type character; defaults to HPSCU. One of HPSCU, HPSCGS, SSCGS, or SSCU. 
+#'
+#' * HPSCU - High Precision Single Country Unstadardized. The premier geoBoundaries release,
+#' * HPSCGS - High Precision Single Country Globally Standardized. A version of geoBoundaries
+#'   high precision data that has been clipped to the U.S. Department of State boundary file,
+#'   ensuring no contested boundaries or overlap in the dataset. This globally standardized
+#'   product may have gaps between countries. If you need a product with no gaps,
+#'   we recommend our simplified global product.
+#' * SSCU - Simplified Single Country Unstandardized. A simplified version of every file
+#'   available for every country in the world. No standardization, maybe gaps. 
+#' * SSCGS - Simplified Single Country Globally Standardized. A version of geoBoundaries
+#'   simplified data that has been clipped to the U.S. Department of State boundary file,
+#'   ensuring no contested boundaries or overlap in the dataset.
+#'   This globally standardized product may have gaps between countries.
+
+
+#test with a couple countries
+sftest <- rgeoboundaries::geoboundaries(c("mali", "senegal"), adm_lvl = "adm0", type = "SSCGS")
+
+#to get list of countries (from afriadmin)
+data(afcountries)
+
+
+sfafrica0 <- rgeoboundaries::geoboundaries(afcountries$name, adm_lvl = "adm0", type = "SSCGS")
+
+# even this standardised one has some gaps for contested regions
+# and doesn't have western sahara
+mapview(sfafrica0)
+
+
+```
+
+
+
+
