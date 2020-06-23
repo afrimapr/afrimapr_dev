@@ -99,8 +99,8 @@ df3 <- tidyr::pivot_longer(df2, -c(country, threshdistm), names_to = "measure", 
 # filter just rows wanted in plot
 df4 <- dplyr::filter(df3,measure %in% c('healthsites','who'))
 
-# ADD facility numbers from MoHs hardcoded for now
-# TODO add code from Anelda to derive these from the data
+# adde facility numbers from ministry of health sources 
+# hardcoded here from analysis in http://doi.org/10.5281/zenodo.3871224 and https://rpubs.com/anelda/african-mfls
 dfmoh <- data.frame(country=c("Kenya","Malawi","Namibia","Rwanda","South Sudan","United Republic of Tanzania","Zambia"),
                     threshdistm=NA,
                     measure="moh",
