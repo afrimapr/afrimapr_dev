@@ -52,6 +52,22 @@ sfafrica0 <- rgeoboundaries::geoboundaries(afcountries$name, adm_lvl = "adm0", t
 # and doesn't have western sahara
 mapview(sfafrica0)
 
+# look at the simplified, unstandardized (SSCU) version
+sfafrica_unstandard_0 <- rgeoboundaries::geoboundaries(afcountries$name, adm_lvl = "adm0", type = "SSCU")
+
+#mapview(sfafrica_unstandard_0)
+
+
+# each layer works in isolation but trying to compare them doesn't
+# possibly a problem with my mapview version ?
+#Error in if (!is.na(getProjection(lst[[i]]))) { : 
+#  argument is of length zero
+mapview::mapview(list(sfafrica0, sfafrica_unstandard_0), 
+                 fill=FALSE, 
+                 color=list('blue','red'), 
+                 col.region=list('blue','red'),
+                 alpha=0.5, 
+                 lwd=1)
 
 ```
 
