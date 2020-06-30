@@ -3,23 +3,10 @@
 # simple first version
 
 
-#cran_packages <- c("leaflet","remotes")
 cran_packages <- c("mapview")
 lapply(cran_packages, function(x) if(!require(x,character.only = TRUE)) install.packages(x))
 
-
-# library(remotes)
-# library(leaflet)
-# library(ggplot2)
-# library(patchwork) #for combining ggplots
-# 
-# if(!require(afrihealthsites)){
-#   remotes::install_github("afrimapr/afrihealthsites")
-# }
-
-#library(afrihealthsites)
 library(mapview)
-
 
 #global variables
 
@@ -30,8 +17,6 @@ dfsa <- read.csv(urldata)
 # convert to spatial format
 sfsa <- sf::st_as_sf(dfsa, coords = c("Long", "Lat"), crs = 4326, na.fail=FALSE)
 
-
-# Define a server for the Shiny app
 function(input, output) {
 
   ######################################
@@ -40,14 +25,13 @@ function(input, output) {
   output$serve_healthsites_map <- renderLeaflet({
 
     mapplot <- mapview::mapview(sfsa, 
-                                zcol='Category', 
-                                label=paste(sfsa$Name,"(",sfsa$Category,")"))
+                                zcol='Category',                               # which column sets point colour
+                                layer.name='Category',                         # title for the legend
+                                label=paste(sfsa$Name,"(",sfsa$Category,")"))  # label displayed on mouse hover
 
     #return map to be plotted
     mapplot@map
 
     })
-
-
 
 }
