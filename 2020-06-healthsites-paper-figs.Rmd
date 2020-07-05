@@ -14,7 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # remotes::install_github("afrimapr/afrihealthsites")
 
 # get development version of mapview to avoid error  Error in if (!is.na(getProjection(lst[[i]]))) 
-remotes::install_github("r-spatial/mapview@develop")
+#remotes::install_github("r-spatial/mapview@develop")
 
 library(afrihealthsites)
 library(knitr) #for kable
@@ -36,7 +36,7 @@ library(patchwork)
 
 opts_chunk$set(dev="tiff",
                #dev.args=list(compression="lzw"),
-               dpi=600, #wellcome wants 600
+               dpi=300, #wellcome says 600, but makes huge files
                cache=FALSE,
                fig.path='2020-06-paper-figs/',
                fig.width=8.5,
@@ -46,7 +46,7 @@ opts_chunk$set(dev="tiff",
 
 Code to count the number of locations per country in each source dataset and save it.
 
-```{r, eval=TRUE, echo=FALSE, warning=FALSE}
+```{r, eval=FALSE, echo=FALSE, warning=FALSE}
 
 #eval = FALSE after have run the first time because it takes few mins
 
@@ -122,12 +122,14 @@ df5$measure <- factor(df5$measure,levels=c("who", "healthsites","moh"))
 #point_cols <- c("who"='steelblue2', "healthsites"='firebrick1', "moh"='green3')
 point_cols <- c('steelblue2', 'firebrick1','green3')
 
-ggplot(df5, aes(x=country, y=count, colour=measure)) + 
+ggplot(df5, aes(x=country, y=count, colour=measure, shape=measure)) + 
   geom_point(alpha = 0.7) +
   scale_colour_manual(name="data source",
                     labels = c("WHO-KWTRP", "healthsites.io", "National List"),
                     values = point_cols) +
-  #scale_shape_manual(values=c(1,1,2))+
+  scale_shape_manual(name="data source",
+                    labels = c("WHO-KWTRP", "healthsites.io", "National List"),
+                    values=c(19,2,15)) +
   # labs(subtitle="Normalised mileage from 'mtcars'", 
   #      title= "Diverging Bars") +
   ylab("number of health facility locations") +
@@ -222,33 +224,36 @@ ids_nurs <- which((sfhsall$staff_nurses != "")) #934
 
 ```
 
-```{r fig8_zambia_moh, eval=FALSE, echo=FALSE, warnings=FALSE, asis=TRUE, fig.width=9, fig.height=9}
+```{r fig8_zambia_moh, eval=TRUE, echo=FALSE, warnings=FALSE, asis=TRUE, fig.width=9, fig.height=9}
 
-#eval=FALSE because this has developed an error. a zoomed screenshot is used for the paper anyway
-#it is due to passing the df or sf to compare_hs_sources()
-# Error in if (!is.na(getProjection(lst[[i]]))) { : 
-#   argument is of length zero 
+#eval=FALSE because this produces an interactive map. A zoomed screenshot is used for the paper.
 
 url_zambia <- "https://raw.githubusercontent.com/MOH-Zambia/MFL/master/geography/data/facility_list.csv"
 
-#problem with data that there are some NAs in coords columns 
-#this fixes it
 dfzambia <- read.csv(url_zambia)
-dfzambia <- dfzambia[-which(is.na(dfzambia$longitude)),]
+
+library(afrihealthsites)
+
+# plot an interactive map of the locations from the two sources
+compare_hs_sources('zambia', 
+                   datasources = list('who', dfzambia), 
+                   type_column = 'facility_type', 
+                   label_column = 'name', 
+                   lonlat_columns = c('longitude', 'latitude'))
+
+
+#previous problem with data that there are some NAs in coords columns 
+#not needed now because afrihealthsites copes
+#dfzambia <- read.csv(url_zambia)
+#dfzambia <- dfzambia[-which(is.na(dfzambia$longitude)),]
 
 #plot zambia map on its own
-sfzambia <- afrihealthsites('zambia',
-                            datasource = dfzambia,
-                            type_column = 'facility_type',
-                            label_column = 'name',
-                            lonlat_columns = c("longitude", "latitude"),
-                            plot=FALSE)
-
-#comparison of zambia data with that in who-KWTRP
-datasources <- list('who', dfzambia)
-#datasources <- list('who', sfzambia)
-
-compare_hs_sources('zambia', datasources=datasources, type_column = 'facility_type', label_column = 'name', lonlat_columns = c("longitude", "latitude"))
+# sfzambia <- afrihealthsites('zambia',
+#                             datasource = dfzambia,
+#                             type_column = 'facility_type',
+#                             label_column = 'name',
+#                             lonlat_columns = c('longitude', 'latitude'),
+#                             plot=FALSE)
 
 #nice comparison between MFL and WHO - similar, extra types in MFL 
 #but bit complicated to compare for the paper
