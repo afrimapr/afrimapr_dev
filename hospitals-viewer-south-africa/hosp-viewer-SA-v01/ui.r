@@ -29,7 +29,7 @@ fluidPage(
       p("Open source ", a("R code", href="https://github.com/afrimapr/afrimapr_dev/tree/master/hospitals-viewer-south-africa/hosp-viewer-SA-v01", target="_blank")),
       
       # dynamic who category selection
-      uiOutput("select_who_cat"),
+      #uiOutput("select_who_cat"),
   
       p("active development July 2020, v01\n"),
   
