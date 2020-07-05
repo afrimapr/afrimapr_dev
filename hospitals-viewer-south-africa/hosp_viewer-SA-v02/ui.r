@@ -39,7 +39,7 @@ fluidPage(
                 p("UI by ", a("afrimapr", href="http://www.afrimapr.org", target="_blank"),
                   ": creating R building-blocks to ease use of open health data in Africa"),
                 
-                p("Open source ", a("R code", href="https://github.com/afrimapr/afrimapr_dev/tree/master/hospitals-viewer-south-africa/hosp-viewer-SA-v01", target="_blank")),
+                p("Open source ", a("R code", href="https://github.com/afrimapr/afrimapr_dev/tree/master/hospitals-viewer-south-africa/hosp-viewer-SA-v02", target="_blank")),
                 
                 p("active development July 2020, v02\n"),
                 
