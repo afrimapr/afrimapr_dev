@@ -57,7 +57,8 @@ library(googlesheets4)
 
 ken_adm3 <- rgeoboundaries::gb_adm3("kenya", type = "sscgs")
 
-ken_adm2 <- rgeoboundaries::gb_adm2("kenya", type = "sscgs")
+ken_adm2 <- rgeoboundaries::gb_adm2("kenya", type = "sscgs") %>% 
+  mutate(shapeName = str_to_title(shapeName))
 
 ken_adm1 <- rgeoboundaries::gb_adm1("kenya", type = "sscgs") %>% 
   # County name problems in original data from geoboundaries
@@ -381,6 +382,9 @@ preg_clean <- preg_columns %>%
   # Fix county names to correspond with other data sets
   mutate(orgunitlevel2 = case_when(orgunitlevel2 == "Muranga" ~ "Murang'a",
                                    TRUE ~ as.character(orgunitlevel2))) %>% 
+  rename(adm1 = orgunitlevel2,
+         adm2 = orgunitlevel3,
+         adm3 = orgunitlevel4) %>% 
   # Change NAs to 0 where data is available either for 10-14yrs or 15-19 yrs and can be checked against total (adolescents_pregnancy)
   mutate(adolescents_10_14_years_with_pregnancy = case_when(adolescent_pregnancy - adolescents_15_19_years_with_pregnancy == 0 ~ 0,
                                                             TRUE ~ as.numeric(adolescents_10_14_years_with_pregnancy)),
@@ -417,6 +421,15 @@ remove(gs_preg, preg_clean, preg_columns)
 
 ```
 
+```{r add_admin_boundaries_to_pregnancy}
+
+# Add admin1 (county) boundary data and convert pregnancy data to an sf object
+preg_adm1 <- preg_final %>% 
+  dplyr::left_join(ken_adm1, by = c("adm1" = "shapeName"))
+
+preg_adm1 <- sf::st_as_sf(preg_adm1)
+
+```
 
 
 
