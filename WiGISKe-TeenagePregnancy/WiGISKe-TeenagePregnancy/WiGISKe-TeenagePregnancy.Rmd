@@ -1,0 +1,398 @@
+---
+title: "Exploring teenage pregnancy data from Kenya"
+author: "Anelda van der Walt"
+date: "27/07/2020"
+output:
+  html_document:
+    theme: sandstone
+    code_folding: hide
+    includes:
+      after_body: partials/footer.html
+      before_body: partials/header.html
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Data manipulation and cleaning
+library(tidyverse)
+library(stringr)
+library(janitor)
+library(lubridate)
+library(useful)
+
+# Directory setup to facilitate re-use
+library(here)
+
+# Mapping
+library(tmap)
+library(tmaptools)
+library(sf)
+library(leaflet)
+
+# DATA PACKAGES
+# Various admin level boundaries
+library(rgeoboundaries)
+# School data - https://github.com/anelda/schoolsKenya/
+library(schoolsKenya)
+# CKAN api access to https://open.africa/
+library(ckanr)
+# WorldBank stats
+library(wbstats)
+# To get pregnancy data from Google Spreadsheet
+library(googlesheets4)
+
+
+```
+
+## Kenya's administrative boundaries
+
+```{r kenya_admin_boundaries}
+
+# Use rgeoboundaries to obtain various admin level boundaries for cloropleth maps and statistics
+
+ken_adm3 <- rgeoboundaries::gb_adm3("kenya", type = "sscgs")
+
+ken_adm2 <- rgeoboundaries::gb_adm2("kenya", type = "sscgs")
+
+ken_adm1 <- rgeoboundaries::gb_adm1("kenya", type = "sscgs") %>% 
+  # County name problems in original data from geoboundaries
+  mutate(shapeName = case_when(shapeName == "Elegeyo-Marakwet" ~ "Elgeyo Marakwet",
+                            shapeName == "Murang`a" ~ "Murang'a",
+                            shapeName == "Tharaka-Nithi" ~ "Tharaka Nithi",
+                            TRUE ~ as.character(shapeName)))
+
+ken_adm0 <- rgeoboundaries::gb_adm0("kenya", type = "sscgs")
+
+```
+
+
+
+# Population demographics
+
+## Population growth estimates
+
+### World Bank data
+
+```{r worldbank}
+
+# Used wb_indicators() to find correct indicator codes
+# Country iso code must be upper case
+# Calculate projected population for 2020 based on previous years' growth 
+ken_f_10_14 <- wbstats::wb(country = "KEN", indicator = "SP.POP.1014.FE", startdate = 2016, enddate = 2020) %>% 
+  select(-c(iso2c, country, indicatorID, indicator)) %>% 
+  mutate(growth = value/dplyr::lead(value)) %>% 
+  add_row(.before = 1, iso3c = "KEN", date = "2020", value = ken_f_10_14$value[2]*mean(ken_f_10_14$growth[2:4])) %>% 
+  mutate(age = "10-14",
+         gender = "f")
+  
+ken_m_10_14 <- wbstats::wb(country = "KEN", indicator = "SP.POP.1014.MA", startdate = 2016, enddate = 2020)%>% 
+  select(-c(iso2c, country, indicatorID, indicator)) %>% 
+  mutate(growth = value/dplyr::lead(value)) %>% 
+  add_row(.before = 1, iso3c = "KEN", date = "2020", value = ken_m_10_14$value[2]*mean(ken_m_10_14$growth[2:4]))   %>% 
+  mutate(age = "10-14",
+         gender = "m")
+
+ken_f_15_19 <- wbstats::wb(country = "KEN", indicator = "SP.POP.1519.FE", startdate = 2016, enddate = 2020)%>% 
+  select(-c(iso2c, country, indicatorID, indicator)) %>% 
+  mutate(growth = value/dplyr::lead(value)) %>% 
+  add_row(.before = 1, iso3c = "KEN", date = "2020", value = ken_f_15_19$value[2]*mean(ken_f_15_19$growth[2:4]))  %>% 
+  mutate(age = "15-19",
+         gender = "f")
+
+ken_m_15_19 <- wbstats::wb(country = "KEN", indicator = "SP.POP.1519.MA", startdate = 2016, enddate = 2020)%>% 
+  select(-c(iso2c, country, indicatorID, indicator)) %>% 
+  mutate(growth = value/dplyr::lead(value)) %>% 
+  add_row(.before = 1, iso3c = "KEN", date = "2020", value = ken_m_15_19$value[2]*mean(ken_m_15_19$growth[2:4])) %>% 
+  mutate(age = "15-19",
+         gender = "m")
+
+ken_gender_age_pop <- ken_f_10_14 %>% 
+  bind_rows(ken_f_15_19, ken_m_10_14, ken_m_15_19) %>% 
+  select(-growth)
+
+# Clean up
+remove(ken_f_10_14, ken_m_10_14, ken_f_15_19, ken_m_15_19)
+```
+
+## Current population estimates by county, sex and age
+
+```{r population_demographics}
+# Data downloaded from https://open.africa/dataset/2019-kenya-population-and-housing-census
+# https://open.africa/ uses CKAN API
+# Package ckanr used to access API
+# Good tutorial here - https://www.r-bloggers.com/trying-the-ckanr-package/
+
+# Usage from https://gitlab.com/-/snippets/1999632
+ckanr::ckanr_setup(url = "https://open.africa")
+ds_name <- "2019-kenya-population-and-housing-census"
+ds <- package_show(ds_name)
+
+# Some magic went into this - I used `View(ds)` to see which datasets I wanted.
+# It is possible to script it and make it more reproducible, but I'm not going to spend time on that now as it may be quite fragile in any case.
+# We'll download the following datasets:
+
+## Distribution of Urban Population by Age, Sex County and sub-County - ID:32
+df_u <- ckan_fetch(ds$resources[[32]]$url) 
+
+ken_pop_urban <- df_u %>%   
+  # Fix header problem - double row header
+  rename(county = "COUNTY",
+         age = "MOMBASA",
+         male = "X",
+         female = "X.1",
+         total = "X.2") %>% 
+  select(-total) %>% 
+  # Change missing age data from "Not stated" to NA to make it usable
+  mutate(age = na_if(age,"Not Stated")) %>% 
+  mutate(county = stringr::str_to_title(county)) %>%
+  mutate(county = case_when(county == "Elg eyo/Marakwet" ~ "Elgeyo Marakwet",
+                            county == "Nairobi City" ~ "Nairobi",
+                            county == "Taita/Taveta" ~ "Taita Taveta",
+                            county == "Tharaka-Nithi" ~ "Tharaka Nithi",
+                            TRUE ~ as.character(county))) %>%   
+   # Remove aggregating rows as well as header rows in data
+  filter(str_detect(tolower(age), "[a-z|-]", negate = TRUE )) %>%
+  # Remove commas in numerical values which causes it to be character strings
+  mutate(male = as.numeric(str_remove_all(male, ",")),
+         female = as.numeric(str_remove_all(female, ","))) %>% 
+  pivot_longer(cols = c(male, female), names_to = "gender", values_to = "count") %>% 
+  mutate(urban_rural = "urban")
+  
+ 
+## Distribution of Rural Population by Age, Sex County and sub-County - ID:34
+
+df_r <- ckan_fetch(ds$resources[[34]]$url) 
+
+ken_pop_rural <- df_r %>%   
+  # Clean headers
+  clean_names() %>% 
+  select(-total) %>% 
+  # Capture county from row data in age column
+  mutate(county = case_when(str_detect(age,  "[A-Z]") & male == "" & female == "" ~ stringr::str_to_title(age))) %>% 
+  mutate(county = case_when(county == "Elgeyo/Marakwet" ~ "Elgeyo Marakwet",
+                            county == "Nairobi City" ~ "Nairobi",
+                            county == "Taita/Taveta" ~ "Taita Taveta",
+                            county == "Tharaka-Nithi" ~ "Tharaka Nithi",
+                            TRUE ~ as.character(county))) %>%   
+  #Fill cells with county name
+  tidyr::fill(county, .direction = "down") %>% 
+  dplyr::relocate(county, .before = "age") %>% 
+  # Change missing age data from "Not stated" to NA to make it usable
+  mutate(age = na_if(age,"Not Stated")) %>% 
+  # Remove aggregating rows as well as header rows in data
+  filter(str_detect(tolower(age), "[a-z|-]", negate = TRUE )) %>%
+  # Remove commas in numerical values which causes it to be character strings
+  mutate(male = as.numeric(str_remove_all(male, ",")),
+         female = as.numeric(str_remove_all(female, ",")))  %>% 
+  pivot_longer(cols = c(male, female), names_to = "gender", values_to = "count") %>% 
+  mutate(urban_rural = "rural")
+
+ken_pop_combined <- ken_pop_rural %>% 
+  bind_rows(ken_pop_urban)
+
+# Add geometry for each county
+ken_pop_combined <- ken_pop_combined %>% 
+  dplyr::left_join(ken_adm1, by = c("county" = "shapeName"))
+
+# Convert ordinary dataframe to sf object
+ken_pop_sf <- sf::st_as_sf(ken_pop_combined)
+
+# Clean up workspace
+remove(ds, ds_name, df_r, df_u, ken_pop_rural, ken_pop_urban, ken_pop_combined)
+
+```
+
+
+## Current population estimates by county and sex
+
+```{r population_demographics}
+# Data downloaded from https://open.africa/dataset/2019-kenya-population-and-housing-census
+# https://open.africa/ uses CKAN API
+# Package ckanr used to access API
+# Good tutorial here - https://www.r-bloggers.com/trying-the-ckanr-package/
+
+# Usage from https://gitlab.com/-/snippets/1999632
+ckanr::ckanr_setup(url = "https://open.africa")
+ds_name <- "2019-kenya-population-and-housing-census"
+ds <- package_show(ds_name)
+
+# Some magic went into this - I looked on the website to see which datasets I wanted.
+# It is possible to script it and make it more reproducible, but I'm not going to spend time on that now as it may be quite fragile in any case.
+# We'll download the following datasets:
+## Kenya Population by Sex and County - ID:3
+df_a <- ckan_fetch(ds$resources[[3]]$url) 
+
+# Skip first 5 rows as it contains metadata, 6th row is header
+ken_pop <- janitor::row_to_names(df_a, 6) %>%  
+  # Convert column names to lower case, standard format
+  clean_names() %>% 
+  # Remove the line that contains the total population for Kenya (line 1 of the data)
+  filter(name != "Kenya")
+
+## Distribution of Urban Population by Sex and County - ID:10
+df_u <- ckan_fetch(ds$resources[[10]]$url) 
+
+ken_pop_urban <- df_u %>%   
+  # Convert column names to lower case, standard format
+  clean_names() %>% 
+  # Remove 'total' column
+  select(-total) %>% 
+  # Raw data reads numbers as characters due to commas in numerical fields
+  mutate(male = as.numeric(str_remove_all(male, ",")),
+         female = as.numeric(str_remove_all(female, ",")),
+         intersex = as.numeric(str_remove_all(intersex, ",")))%>% 
+  # Remove row with total data for Kenya - row 1
+  filter(county != "KENYA") %>% 
+  # Add column with urban/rural for pivoting_longer based on category
+  mutate(urban_rural = "urban")
+
+## Distribution of Rural Population by Sex and County - ID:15
+df_r <- ckan_fetch(ds$resources[[15]]$url) 
+
+ken_pop_rural <- df_r %>%   
+  # Convert column names to lower case, standard format
+  clean_names() %>% 
+  # Remove 'total' column
+  select(-total) %>% 
+  # Raw data reads numbers as characters due to commas in numerical fields
+  mutate(male = as.numeric(str_remove_all(male, ",")),
+         female = as.numeric(str_remove_all(female, ",")),
+         intersex = as.numeric(str_remove_all(intersex, ","))) %>% 
+  filter(county != "KENYA") %>% 
+  # Add column with urban/rural for pivoting_longer based on category
+  mutate(urban_rural = "rural")
+
+ken_pop_combined <- ken_pop_rural %>% 
+  bind_rows(ken_pop_urban) %>% 
+  # Fix county naming issues
+  mutate(county = case_when(county == "Elg eyo/Marakwet" ~ "Elgeyo Marakwet",
+                            county == "Nairobi City" ~ "Nairobi",
+                            county == "Taita/Taveta" ~ "Taita Taveta",
+                            county == "Tharaka-Nithi" ~ "Tharaka Nithi",
+                            TRUE ~ as.character(county))) %>% 
+  pivot_longer(-c(county, urban_rural), names_to = "gender", values_to = "count") %>% 
+  # Convert NAs to 0 as it is supposed to be 0 given the original dataset that includes totals column where male/female/intersex add up to total
+  mutate(count = case_when(is.na(count) ~ 0,
+                           TRUE ~ as.numeric(count))) %>% 
+  # Calculate proportions for male/female living rural/urban in each county
+  group_by(county) %>% 
+  mutate(freq = round(count/sum(count), 4)) 
+  
+# Add geometry for each county
+ken_pop_sf <- ken_pop_combined %>% 
+  dplyr::left_join(ken_adm1, by = c("county" = "shapeName"))
+
+# Convert ordinary dataframe to sf object
+ken_pop_combined <- sf::st_as_sf(ken_pop_combined)
+
+# Clean up workspace
+remove(ds_name, df_r, df_u, df_a, ken_pop_rural, ken_pop_urban)
+
+```
+
+# Scools
+
+```{r schools}
+
+# The data is obtained by loading the schoolsKenya package i.e. library(schoolsKenya)
+# For installation see https://github.com/anelda/schoolsKenya/
+# The data is stored as ken_schools in the package
+
+schools_by_county <- schoolsKenya::ken_schools %>% 
+  # There are data from Open Data Kenya from 2007 as well, the Counties are different for Nairobi County so rather getting rid of it for now
+  filter(source == "Ministry of Education, 2016") %>% 
+  dplyr::group_by(county) %>% 
+  dplyr::count(name = "count") %>% 
+  # Drop school geometry as this calculation will need the county geometry instead
+  sf::st_drop_geometry() %>% 
+  # Add county geometry
+  dplyr::left_join(ken_adm1, by = c("county" = "shapeName"))
+
+# Convert ordinary dataframe to sf object
+schools_by_county <- sf::st_as_sf(schools_by_county)
+
+t <- tm_shape (schools_by_county) + 
+  tm_fill (col="count", palet = get_brewer_pal("Blues", n = 7),
+    title = "Primary and Secondary Schools by County",
+    style = "fisher", n = 7, legend.reverse = TRUE ) +
+  tm_borders (col = " black ", lwd = 1) +
+  tm_layout( frame = FALSE , scale = 0.8)
+
+t
+```
+
+# Adolescent pregnancies since 2016
+
+```{r pregnancies}
+
+# Read data from a copy of the original GS to help with permission settings
+gs_preg <- googlesheets4::read_sheet(ss = "https://docs.google.com/spreadsheets/d/1kuqX8QM5uI7J-EhtHLUfthSO8gGyIbupJEuZL5fl9ls/edit?usp=sharing")
+
+preg <- gs_preg %>% 
+  # Clean column names
+  janitor::clean_names() %>%
+  dplyr::rename(percentage_pregnant_women_as_adolescents = "of_pregnant_women_adolescents_10_19_years",
+         estimated_adolescent_abortions_after_first_anc = "estimated_post_abortion") %>% 
+  # Reorder columns to help me see what is there and what relates to what
+  dplyr::relocate(adolescents_15_19_years_with_pregnancy, .after="adolescents_10_14_years_with_pregnancy") %>% 
+  dplyr::relocate(prop_of_monthly_anc_visit_by_preg_adolescent, .after="adolescent_family_planning_uptake_15_19_yrs") %>% 
+  dplyr::relocate(estimated_adolescent_abortions_after_first_anc, .after="prop_of_monthly_anc_visit_by_preg_adolescent") %>% 
+  # Drop unnecesary columns
+  select(-c(periodname, periodcode, perioddescription, orgunitlevel1, organisationunitid, organisationunitname, organisationunitdescription)) %>% 
+  # County names contain the word "county" %>% 
+  mutate(orgunitlevel2 = str_remove(orgunitlevel2, " County"),
+         orgunitlevel3 = str_remove(orgunitlevel3, " Sub County"),
+         orgunitlevel4 = str_remove(orgunitlevel4, " Ward")) %>% 
+  # Fix county names to correspond with other data sets
+  mutate(orgunitlevel2 = case_when(orgunitlevel2 == "Muranga" ~ "Murang'a",
+                                   TRUE ~ as.character(orgunitlevel2))) %>% 
+  # Change NAs to 0 where data is available either for 10-14yrs or 15-19 yrs and can be checked against total (adolescents_pregnancy)
+  mutate(adolescents_10_14_years_with_pregnancy = case_when(adolescent_pregnancy - adolescents_15_19_years_with_pregnancy == 0 ~ 0,
+                                                            TRUE ~ as.numeric(adolescents_10_14_years_with_pregnancy)),
+         adolescents_15_19_years_with_pregnancy = case_when(adolescent_pregnancy - adolescents_10_14_years_with_pregnancy == 0 ~ 0,
+                                                            TRUE ~ as.numeric(adolescents_15_19_years_with_pregnancy))) %>% 
+  # Change NAs to 0 where data is available for family planning uptake in either the 10-14yr bracket or the 15-19yr bracket. 
+  # Assume 0 where no observation is entered for one of two columns but an observation is available for the other
+  mutate(adolescent_family_planning_uptake_10_14_yrs = case_when((is.na(adolescent_family_planning_uptake_10_14_yrs) & !is.na(adolescent_family_planning_uptake_15_19_yrs)) ~ 0,
+                                                            TRUE ~ as.numeric(adolescent_family_planning_uptake_10_14_yrs)),
+         adolescent_family_planning_uptake_15_19_yrs = case_when((is.na(adolescent_family_planning_uptake_15_19_yrs) & !is.na(adolescent_family_planning_uptake_10_14_yrs)) ~ 0,
+                                                            TRUE ~ as.numeric(adolescent_family_planning_uptake_15_19_yrs))) %>% 
+  # Separate year from quarter to allow for time series analysis
+  tidyr::separate(col = periodid, into = c("year", "quarter"), sep = "Q") %>% 
+  # Add dates based on quarter data
+  mutate(date = case_when(quarter == 1 ~ paste(year, "01", "01", sep = "-"),
+                          quarter == 2 ~ paste(year, "04", "01", sep = "-"),
+                          quarter == 3 ~ paste(year, "07", "01", sep = "-"),
+                          quarter == 4 ~ paste(year, "10", "01", sep = "-")
+                          )) %>% 
+  # Convert date to Date format
+  mutate(date = lubridate::as_date(date)) %>% 
+  relocate(date, .after = "quarter")
+
+# Clean up
+
+remove(gs_preg)
+
+```
+
+``` {r trend_pregnancies}
+
+preg_ages <- preg %>% 
+  
+
+preg_county <- preg %>% 
+  group_by(orgunitlevel2, year, quarter) %>%
+  summarise(total = sum(adolescent_pregnancy))
+
+preg_county %>%   
+  ggplot(aes(x = year, y = total, fill = quarter)) +
+  geom_bar(stat="identity", position = "dodge") +
+  facet_wrap(~ orgunitlevel2) +
+  theme_minimal()
+
+```
