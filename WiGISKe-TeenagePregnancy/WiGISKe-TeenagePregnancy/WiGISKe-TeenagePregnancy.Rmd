@@ -382,7 +382,8 @@ remove(gs_preg)
 
 ``` {r trend_pregnancies}
 
-preg_ages <- preg %>% 
+#Hi Anelda, seeming bit of code missing here, I commented out next line. Andy
+#preg_ages <- preg %>% 
   
 
 preg_county <- preg %>% 
@@ -396,3 +397,51 @@ preg_county %>%
   theme_minimal()
 
 ```
+
+# andy experimenting from here on
+
+``` {r adolescent pregnancies by quarter and county}
+
+# between these intervals
+inter <- lubridate::interval(ymd("2016-04-01"), ymd("2020-04-01"))
+
+# sum by county & quarter, leave date in for plotting
+preg_cty_qtr <- preg %>% 
+  filter(date %within% inter) %>%
+  group_by(orgunitlevel2, year, quarter, date) %>%
+  summarise(adolescent_pregnancy = sum(adolescent_pregnancy))
+
+# plot adolescent pregnancies per quarter, separate line per county
+# looking for obvious trends
+# seeming decline 2018-2020
+# consistent time effects across counties e.g. 2017q3 is low for nearly all
+preg_cty_qtr %>%   
+  ggplot(aes(x = date, y = adolescent_pregnancy, colour = orgunitlevel2)) +
+  geom_line()
+
+
+```
+
+``` {r adolescent pregnancies by year and county}
+
+# between these intervals - complete years
+inter_yr <- lubridate::interval(ymd("2017-01-01"), ymd("2019-12-31"))
+
+# sum by county & year
+preg_cty_yr <- preg %>% 
+  filter(date %within% inter_yr) %>%
+  group_by(orgunitlevel2, year) %>%
+  summarise(adolescent_pregnancy = sum(adolescent_pregnancy))  %>%
+  ungroup() %>%
+  #make year numeric 
+
+# plot adolescent pregnancies per year, separate line per county
+# looking for obvious trends
+# just 3 years nothing obvious  
+preg_cty_yr %>%   
+  ggplot(aes(x = as.numeric(year), y = adolescent_pregnancy, colour = orgunitlevel2)) +
+  geom_line()
+
+
+```
+
