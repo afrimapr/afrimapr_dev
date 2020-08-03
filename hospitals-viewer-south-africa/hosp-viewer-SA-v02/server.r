@@ -46,23 +46,32 @@ function(input, output) {
     type_truefalse <- tolower(sfsa[[type_column]]) %in% tolower(type_filter)
     sfsa_sel <- sfsa[type_truefalse,]    
     
-    mapplot <- mapview::mapview(sfsa_sel, 
-                                zcol='Category',                               # which column sets point colour
-                                layer.name='Category',                         # title for the legend
-                                cex = input$attribute_to_size_points,          # set point size by one of numeric columns
-                                alpha = 0.1,                                   # point borders light, but present to show light colours
-                                # label displayed on mouse hover
-                                #label=paste0(sfsa$Name,"(",sfsa$Category,")") )
-                                label=paste(sfsa_sel$Name, input$attribute_to_size_points,"=",sfsa_sel[[input$attribute_to_size_points]] ) )  
- 
-    # to retain zoom if only types have been changed
-    if (!is.null(zoom_view))
+    # only try to plot map if there are any data
+    if (nrow(sfsa_sel) > 0)
     {
-      mapplot@map <- leaflet::fitBounds(mapplot@map, lng1=zoom_view$west, lat1=zoom_view$south, lng2=zoom_view$east, lat2=zoom_view$north)
-    }    
-       
-    #return map to be plotted
-    mapplot@map
+      mapplot <- mapview::mapview(sfsa_sel, 
+                                  zcol='Category',                               # which column sets point colour
+                                  layer.name='Category',                         # title for the legend
+                                  cex = input$attribute_to_size_points,          # set point size by one of numeric columns
+                                  alpha = 0.1,                                   # point borders light, but present to show light colours
+                                  # label displayed on mouse hover
+                                  #label=paste0(sfsa$Name,"(",sfsa$Category,")") )
+                                  label=paste(sfsa_sel$Name, input$attribute_to_size_points,"=",sfsa_sel[[input$attribute_to_size_points]] ) )  
+      
+      # to retain zoom if only types have been changed
+      if (!is.null(zoom_view))
+      {
+        mapplot@map <- leaflet::fitBounds(mapplot@map, lng1=zoom_view$west, lat1=zoom_view$south, lng2=zoom_view$east, lat2=zoom_view$north)
+      }    
+      
+      #return map to be plotted
+      mapplot@map
+      
+    } else
+    {
+      return(NULL)
+    }
+    
     
   })
 

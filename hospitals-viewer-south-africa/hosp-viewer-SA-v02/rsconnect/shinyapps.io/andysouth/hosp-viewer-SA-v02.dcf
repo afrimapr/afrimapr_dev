@@ -1,0 +1,12 @@
+name: hosp-viewer-SA-v02
+title: hosp-viewer-SA-v02
+username:
+account: andysouth
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2537666
+bundleId: 3358331
+url: https://andysouth.shinyapps.io/hosp-viewer-SA-v02/
+when: 1594048543.34666
+asMultiple: FALSE
+asStatic: FALSE
