@@ -1,0 +1,88 @@
+---
+title: "dhs_spa_explore"
+#output: html_document
+output: word_document
+---
+
+Exploring data from DHS Service Provision Assessment (SPA).
+Andy South
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(rdhs)
+library(afrihealthsites)
+#library(dplyr)
+
+#set my dhs ID - it will then ask for passwd
+
+set_rdhs_config(email = "andy.south@lstmed.ac.uk",
+                project = "afrimapr : creating R building-blocks to ease use of open health data in Africa",
+                config_path = "rdhs.json",
+                global = FALSE)
+
+
+```
+
+
+```{r first_explore, eval=FALSE, echo=FALSE, asis=TRUE}
+
+survey_characteristics <- dhs_survey_characteristics()
+
+
+## find all the surveys that match the search criteria
+#surveys <- dhs_surveys(countryIds = c("SN"), surveyYearStart = 2018)
+
+#need to use dhs_datasets to get at SPA data
+
+datasets <- dhs_datasets(countryIds = c("SN"), surveyYearStart = 2017, surveyType='SPA', fileFormat = 'Flat')
+datasets$FileType
+# [1] "Facility"               "Family Planning"        "Provider"               "Sick Child"            
+# [5] "Staff/Provider Listing"
+
+#fileType='FC' for Facility
+datasets <- dhs_datasets(countryIds = c("SN"), surveyYearStart = 2017, surveyType='SPA', fileType = 'FC', fileFormat = 'Flat')
+datasets <- dhs_datasets(countryIds = c("SN"), surveyYearStart = 2017, surveyType='SPA', fileType = 'FC', fileFormat = 'Hierarchical')
+
+# download datasets
+downloads <- get_datasets(datasets$FileName)
+
+# Some of your available datasets are not found in the DHS API.This is likely due to the DHS API being out of date and as such some of the meta information about your available datasets may not be available.
+# Downloading: 
+# Senegal 2017 SPA Facility Flat ASCII data (.dat) [SNFC7ZFLSP.ZIP]
+# Dataset download finished
+
+spa_sn2017 <- readRDS(downloads[1])
+
+str(spa_sn2017)
+
+#794 rows, 1782 columns
+#facil #facility identification, starting 50001
+
+#Aha 2018 data is visible now - but download fails
+datasets <- dhs_datasets(countryIds = c("SN"), surveyYear = 2018, surveyType='SPA', fileType = 'FC')
+# but gives this error when trying to download
+downloads <- get_datasets(datasets$FileName)
+# Downloading: NA NA NA NA NA [NA]
+# Error in if (file.size(tf) != desired_dataset$FileSize[1] & attempts ==  : 
+#   missing value where TRUE/FALSE needed
+datasets$FileName
+#[1] "SNFC8HDTSP.ZIP" "SNFC8HFLSP.ZIP" "SNFC8HSDSP.ZIP" "SNFC8HSVSP.ZIP"
+
+# try 2017 again - worked for all 4 file formats
+datasets <- dhs_datasets(countryIds = c("SN"), surveyYear = 2017, surveyType='SPA', fileType = 'FC')
+downloads <- get_datasets(datasets$FileName)
+
+sn2017stata <- readRDS(downloads[1])
+
+#https://www.measureevaluation.org/resources/publications/ms-14-88
+
+
+#TODO
+# ~ check this against the downloaded file
+# ~ check again on 2018 data that is sposed to be there
+
+
+```
+
+
