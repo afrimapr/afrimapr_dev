@@ -83,40 +83,67 @@ ken_adm0 <- rgeoboundaries::gb_adm0("kenya", type = "sscgs")
 # Used wb_indicators() to find correct indicator codes
 # Country iso code must be upper case
 # Calculate projected population for 2020 based on previous years' growth 
-ken_f_10_14 <- wbstats::wb(country = "KEN", indicator = "SP.POP.1014.FE", startdate = 2016, enddate = 2020) %>% 
-  select(-c(iso2c, country, indicatorID, indicator)) %>% 
-  mutate(growth = value/dplyr::lead(value)) %>% 
-  add_row(.before = 1, iso3c = "KEN", date = "2020", value = ken_f_10_14$value[2]*mean(ken_f_10_14$growth[2:4])) %>% 
+# Females age 10 - 14 from 2016 - 2019
+ken_f_10_14_df <- wbstats::wb_data(country = "KEN", indicator = "SP.POP.1014.FE", start_date = 2016, end_date = 2020) %>%
+  clean_names() %>% 
+  rename(indicator_value = sp_pop_1014_fe) %>% 
+  select(-c(iso2c, country, unit, obs_status, footnote, last_updated)) %>% 
+  mutate(growth = indicator_value/dplyr::lag(indicator_value))
+
+# Add row for 2020 based on growth
+ken_f_10_14 <- ken_f_10_14_df %>% 
+  # Calculate the mean population growth since 2016 
+  add_row(iso3c = "KEN", date = 2020, indicator_value = ken_f_10_14_df$indicator_value[4]*mean(ken_f_10_14_df$growth[2:4]), growth = NA) %>% 
   mutate(age = "10-14",
-         gender = "f")
-  
-ken_m_10_14 <- wbstats::wb(country = "KEN", indicator = "SP.POP.1014.MA", startdate = 2016, enddate = 2020)%>% 
-  select(-c(iso2c, country, indicatorID, indicator)) %>% 
-  mutate(growth = value/dplyr::lead(value)) %>% 
-  add_row(.before = 1, iso3c = "KEN", date = "2020", value = ken_m_10_14$value[2]*mean(ken_m_10_14$growth[2:4]))   %>% 
-  mutate(age = "10-14",
-         gender = "m")
-
-ken_f_15_19 <- wbstats::wb(country = "KEN", indicator = "SP.POP.1519.FE", startdate = 2016, enddate = 2020)%>% 
-  select(-c(iso2c, country, indicatorID, indicator)) %>% 
-  mutate(growth = value/dplyr::lead(value)) %>% 
-  add_row(.before = 1, iso3c = "KEN", date = "2020", value = ken_f_15_19$value[2]*mean(ken_f_15_19$growth[2:4]))  %>% 
-  mutate(age = "15-19",
-         gender = "f")
-
-ken_m_15_19 <- wbstats::wb(country = "KEN", indicator = "SP.POP.1519.MA", startdate = 2016, enddate = 2020)%>% 
-  select(-c(iso2c, country, indicatorID, indicator)) %>% 
-  mutate(growth = value/dplyr::lead(value)) %>% 
-  add_row(.before = 1, iso3c = "KEN", date = "2020", value = ken_m_15_19$value[2]*mean(ken_m_15_19$growth[2:4])) %>% 
-  mutate(age = "15-19",
-         gender = "m")
-
-ken_gender_age_pop <- ken_f_10_14 %>% 
-  bind_rows(ken_f_15_19, ken_m_10_14, ken_m_15_19) %>% 
+         gender = "f") %>% 
   select(-growth)
 
+# Males age 10 - 14 from 2016 - 2019 
+ken_m_10_14_df <- wbstats::wb_data(country = "KEN", indicator = "SP.POP.1014.MA", start_date = 2016, end_date = 2020) %>%
+  clean_names() %>% 
+  rename(indicator_value = sp_pop_1014_ma) %>% 
+  select(-c(iso2c, country, unit, obs_status, footnote, last_updated)) %>% 
+  mutate(growth = indicator_value/dplyr::lag(indicator_value))
+
+# Add row for 2020 based on growth
+ken_m_10_14 <- ken_m_10_14_df %>% 
+  # Calculate the mean population growth since 2016 
+  add_row(iso3c = "KEN", date = 2020, indicator_value = ken_m_10_14_df$indicator_value[4]*mean(ken_m_10_14_df$growth[2:4]), growth = NA) %>% 
+  mutate(age = "10-14",
+         gender = "m") %>% 
+  select(-growth)
+
+ken_f_15_19_df <- wbstats::wb_data(country = "KEN", indicator = "SP.POP.1519.FE", start_date = 2016, end_date = 2020) %>%
+  clean_names() %>% 
+  rename(indicator_value = sp_pop_1519_fe) %>% 
+  select(-c(iso2c, country, unit, obs_status, footnote, last_updated)) %>% 
+  mutate(growth = indicator_value/dplyr::lag(indicator_value))
+
+ken_f_15_19 <- ken_f_15_19_df %>% 
+  # Calculate the mean population growth since 2016 
+  add_row(iso3c = "KEN", date = 2020, indicator_value = ken_f_15_19_df$indicator_value[4]*mean(ken_f_15_19_df$growth[2:4]), growth = NA) %>% 
+  mutate(age = "15_19",
+         gender = "f") %>% 
+  select(-growth)
+
+ken_m_15_19_df <- wbstats::wb_data(country = "KEN", indicator = "SP.POP.1519.MA", start_date = 2016, end_date = 2020) %>%
+  clean_names() %>% 
+  rename(indicator_value = sp_pop_1519_ma) %>% 
+  select(-c(iso2c, country, unit, obs_status, footnote, last_updated)) %>% 
+  mutate(growth = indicator_value/dplyr::lag(indicator_value))
+
+ken_m_15_19 <- ken_m_15_19_df %>% 
+  # Calculate the mean population growth since 2016 
+  add_row(iso3c = "KEN", date = 2020, indicator_value = ken_m_15_19_df$indicator_value[4]*mean(ken_m_15_19_df$growth[2:4]), growth = NA) %>% 
+  mutate(age = "15_19",
+         gender = "m") %>% 
+  select(-growth)
+
+ken_gender_age_pop <- ken_f_10_14 %>% 
+  bind_rows(ken_f_15_19, ken_m_10_14, ken_m_15_19) 
+
 # Clean up
-remove(ken_f_10_14, ken_m_10_14, ken_f_15_19, ken_m_15_19)
+remove(ken_f_10_14_df, ken_m_10_14_df, ken_f_15_19_df, ken_m_15_19_df, ken_f_10_14, ken_m_10_14, ken_f_15_19, ken_m_15_19)
 ```
 
 ## Current population estimates by county, sex and age
@@ -333,9 +360,9 @@ t
 # Read data from a copy of the original GS to help with permission settings
 gs_preg <- googlesheets4::read_sheet(ss = "https://docs.google.com/spreadsheets/d/1kuqX8QM5uI7J-EhtHLUfthSO8gGyIbupJEuZL5fl9ls/edit?usp=sharing")
 
-preg <- gs_preg %>% 
+preg_columns <- gs_preg %>% 
   # Clean column names
-  janitor::clean_names() %>%
+  janitor::clean_names() %>% 
   dplyr::rename(percentage_pregnant_women_as_adolescents = "of_pregnant_women_adolescents_10_19_years",
          estimated_adolescent_abortions_after_first_anc = "estimated_post_abortion") %>% 
   # Reorder columns to help me see what is there and what relates to what
@@ -343,8 +370,11 @@ preg <- gs_preg %>%
   dplyr::relocate(prop_of_monthly_anc_visit_by_preg_adolescent, .after="adolescent_family_planning_uptake_15_19_yrs") %>% 
   dplyr::relocate(estimated_adolescent_abortions_after_first_anc, .after="prop_of_monthly_anc_visit_by_preg_adolescent") %>% 
   # Drop unnecesary columns
-  select(-c(periodname, periodcode, perioddescription, orgunitlevel1, organisationunitid, organisationunitname, organisationunitdescription)) %>% 
-  # County names contain the word "county" %>% 
+  select(-c(periodname, periodcode, perioddescription, orgunitlevel1, organisationunitid, organisationunitname, organisationunitdescription)) 
+
+
+preg_clean <- preg_columns %>%   
+    # County names contain the word "county" 
   mutate(orgunitlevel2 = str_remove(orgunitlevel2, " County"),
          orgunitlevel3 = str_remove(orgunitlevel3, " Sub County"),
          orgunitlevel4 = str_remove(orgunitlevel4, " Ward")) %>% 
@@ -361,30 +391,41 @@ preg <- gs_preg %>%
   mutate(adolescent_family_planning_uptake_10_14_yrs = case_when((is.na(adolescent_family_planning_uptake_10_14_yrs) & !is.na(adolescent_family_planning_uptake_15_19_yrs)) ~ 0,
                                                             TRUE ~ as.numeric(adolescent_family_planning_uptake_10_14_yrs)),
          adolescent_family_planning_uptake_15_19_yrs = case_when((is.na(adolescent_family_planning_uptake_15_19_yrs) & !is.na(adolescent_family_planning_uptake_10_14_yrs)) ~ 0,
-                                                            TRUE ~ as.numeric(adolescent_family_planning_uptake_15_19_yrs))) %>% 
+                                                            TRUE ~ as.numeric(adolescent_family_planning_uptake_15_19_yrs)))
+  
+
+preg_final <- preg_clean %>% 
   # Separate year from quarter to allow for time series analysis
   tidyr::separate(col = periodid, into = c("year", "quarter"), sep = "Q") %>% 
   # Add dates based on quarter data
-  mutate(date = case_when(quarter == 1 ~ paste(year, "01", "01", sep = "-"),
-                          quarter == 2 ~ paste(year, "04", "01", sep = "-"),
-                          quarter == 3 ~ paste(year, "07", "01", sep = "-"),
-                          quarter == 4 ~ paste(year, "10", "01", sep = "-")
-                          )) %>% 
+  mutate(month = case_when(quarter == 1 ~ 1,
+                          quarter == 2 ~ 4,
+                          quarter == 3 ~ 7,
+                          quarter == 4 ~ 10),
+         day = 1) %>% 
   # Convert date to Date format
-  mutate(date = lubridate::as_date(date)) %>% 
+  mutate(date = lubridate::as_date(paste(year, month, day, sep="-"))) %>% 
+  relocate(month, .after = "year") %>% 
+  relocate(day, .after = "month") %>% 
   relocate(date, .after = "quarter")
+
+
 
 # Clean up
 
-remove(gs_preg)
+remove(gs_preg, preg_clean, preg_columns)
 
 ```
+
+
+
+
+
 
 ``` {r trend_pregnancies}
 
 preg_ages <- preg %>% 
   
-
 preg_county <- preg %>% 
   group_by(orgunitlevel2, year, quarter) %>%
   summarise(total = sum(adolescent_pregnancy))
