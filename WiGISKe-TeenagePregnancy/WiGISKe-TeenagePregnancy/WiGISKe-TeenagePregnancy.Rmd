@@ -36,9 +36,20 @@ library(leaflet)
 
 # DATA PACKAGES
 # Various admin level boundaries
+
+#install rgeoboundaries if not already
+if(!require(rgeoboundaries)){
+  install.packages("remotes")
+  remotes::install_github("dickoa/rgeoboundaries")
+}
 library(rgeoboundaries)
+
 # School data - https://github.com/anelda/schoolsKenya/
+if(!require(schoolsKenya)){
+  remotes::install_github("anelda/schoolsKenya")
+}
 library(schoolsKenya)
+
 # CKAN api access to https://open.africa/
 library(ckanr)
 # WorldBank stats
@@ -440,14 +451,14 @@ preg_adm1 <- sf::st_as_sf(preg_adm1)
 #Hi Anelda, seeming bit of code missing here, I commented out next line. Andy
 #preg_ages <- preg %>% 
   
-preg_county <- preg %>% 
-  group_by(orgunitlevel2, year, quarter) %>%
+preg_county <- preg_final %>% 
+  group_by(adm1, year, quarter) %>%
   summarise(total = sum(adolescent_pregnancy))
 
 preg_county %>%   
   ggplot(aes(x = year, y = total, fill = quarter)) +
   geom_bar(stat="identity", position = "dodge") +
-  facet_wrap(~ orgunitlevel2) +
+  facet_wrap(~ adm1) +
   theme_minimal()
 
 ```
@@ -460,9 +471,9 @@ preg_county %>%
 inter <- lubridate::interval(ymd("2016-04-01"), ymd("2020-04-01"))
 
 # sum by county & quarter, leave date in for plotting
-preg_cty_qtr <- preg %>% 
+preg_cty_qtr <- preg_final %>% 
   filter(date %within% inter) %>%
-  group_by(orgunitlevel2, year, quarter, date) %>%
+  group_by(adm1, year, quarter, date) %>%
   summarise(adolescent_pregnancy = sum(adolescent_pregnancy))
 
 # plot adolescent pregnancies per quarter, separate line per county
@@ -470,7 +481,7 @@ preg_cty_qtr <- preg %>%
 # seeming decline 2018-2020
 # consistent time effects across counties e.g. 2017q3 is low for nearly all
 preg_cty_qtr %>%   
-  ggplot(aes(x = date, y = adolescent_pregnancy, colour = orgunitlevel2)) +
+  ggplot(aes(x = date, y = adolescent_pregnancy, colour = adm1)) +
   geom_line()
 
 
@@ -482,18 +493,18 @@ preg_cty_qtr %>%
 inter_yr <- lubridate::interval(ymd("2017-01-01"), ymd("2019-12-31"))
 
 # sum by county & year
-preg_cty_yr <- preg %>% 
+preg_cty_yr <- preg_final %>% 
   filter(date %within% inter_yr) %>%
-  group_by(orgunitlevel2, year) %>%
+  group_by(adm1, year) %>%
   summarise(adolescent_pregnancy = sum(adolescent_pregnancy))  %>%
-  ungroup() %>%
-  #make year numeric 
+  ungroup()
+
 
 # plot adolescent pregnancies per year, separate line per county
 # looking for obvious trends
 # just 3 years nothing obvious  
 preg_cty_yr %>%   
-  ggplot(aes(x = as.numeric(year), y = adolescent_pregnancy, colour = orgunitlevel2)) +
+  ggplot(aes(x = as.numeric(year), y = adolescent_pregnancy, colour = adm1)) +
   geom_line()
 
 
