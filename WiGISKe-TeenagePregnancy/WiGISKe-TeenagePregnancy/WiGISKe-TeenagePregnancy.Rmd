@@ -57,6 +57,9 @@ library(wbstats)
 # To get pregnancy data from Google Spreadsheet
 library(googlesheets4)
 
+# to allow joins ignoring case (because adm3 boundaries file has names all uppercase)
+library(fuzzyjoin)
+
 
 ```
 
@@ -66,7 +69,8 @@ library(googlesheets4)
 
 # Use rgeoboundaries to obtain various admin level boundaries for cloropleth maps and statistics
 
-ken_adm3 <- rgeoboundaries::gb_adm3("kenya", type = "sscgs")
+ken_adm3 <- rgeoboundaries::gb_adm3("kenya", type = "sscgs") %>% 
+  mutate(shapeName = str_to_title(shapeName))
 
 ken_adm2 <- rgeoboundaries::gb_adm2("kenya", type = "sscgs") %>% 
   mutate(shapeName = str_to_title(shapeName))
@@ -334,7 +338,7 @@ remove(ds_name, df_r, df_u, df_a, ken_pop_rural, ken_pop_urban)
 
 ```
 
-# Scools
+# Schools
 
 ```{r schools}
 
@@ -440,6 +444,25 @@ preg_adm1 <- preg_final %>%
 
 preg_adm1 <- sf::st_as_sf(preg_adm1)
 
+
+
+# andy trying to join pregnancy to admin3 polygons 
+
+preg_adm3 <- preg_final %>% 
+  # dplyr::left_join(ken_adm3, by = c("adm3" = "shapeName")) %>%
+  # to cope with names being all upper case in the boundaries file
+  fuzzyjoin::regex_left_join(ken_adm3, by=c("adm3" = "shapeName"), ignore_case =TRUE) %>%
+  sf::st_as_sf()
+
+# problems with join adm3 names seem not the same
+#length(unique(preg_adm3$adm3))
+#[1] 1404
+# only 39 match
+tst <- which(!is.na(match(unique(preg_adm3$adm3), ken_adm3$shapeName)))
+
+# map
+
+
 ```
 
 
@@ -464,6 +487,16 @@ preg_county %>%
 ```
 
 # andy experimenting from here on
+
+``` {r map percent adolescent pregnancies by admin3}
+
+#tmap_mode("view")
+
+tmap::tm_shape(preg_adm3) +
+    tm_polygons("percentage_pregnant_women_as_adolescents") +
+    tm_facets(by="date")
+
+```
 
 ``` {r adolescent pregnancies by quarter and county}
 
