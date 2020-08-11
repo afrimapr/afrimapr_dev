@@ -18,6 +18,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 library(countrycode)
 
+#remotes::install_github("afrimapr/afriadmin")
 library(afriadmin) # partly just to get at country list, also potential to compare with other boundaries
 library(mapview)
 library(knitr) #for kable
@@ -45,6 +46,33 @@ data(afcountries)
 countrycode(afcountries$iso3c, origin = 'iso3c', destination = 'country.name')
 
 #countrycode country.name has "Congo - Kinshasa"         "Congo - Brazzaville"
+
+
+# can use the codelist from package countrycode, which contains 59 African countries
+# and 743 columns of different codes, names, languages, regex etc.
+
+dfaf <- countrycode::codelist[which(codelist$continent=="Africa"),]
+
+#country.name.en has the weird Congos
+#cow.name is the closest to what I have (only maybe problem is that it doesn't have Western Sahara (ESH) - but that doesn't appear in many things anyway)
+# has no accents, Ivory Coast, Congo, Tanzania
+
+countrycode(afcountries$iso3c, origin = 'iso3c', destination = 'cow.name')
+
+# I think we don't need africountrynames package - unless maybe we use it as a wrapper to countrycode
+
+# for other afrimapr packages, i think we should work with iso3c, convert everything to that & then convert to cow.name when we need
+
+# also maybe subset out those that don't have cow.name 
+dfaf_noiso <- countrycode::codelist[which(codelist$continent=="Africa" & is.na(codelist$cow.name)),]
+
+dfaf_noiso$country.name.en
+#[1] "Mayotte"        "Réunion"        "Somaliland"     "St. Helena"     "Western Sahara"
+
+# can potentially sort western sahara using countrycode::custom_match
+custom_match <- c(ESH = "Western Sahara")
+
+countrycode("ESH", origin = 'iso3c', destination = 'cow.name', custom_match = custom_match)
 
 
 
