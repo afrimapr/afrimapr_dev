@@ -1,0 +1,55 @@
+---
+title: "africountrynames-testing"
+output: html_document
+---
+
+Experimenting with African countrynames, planning to put into own micro package (e.g. to avoid repetition between other afrimapr packages, afriadmin and afrihealthsites).
+
+ISSUE :
+Always seems to be minor differences in some African countrynames between different datasets. To be absolutely sure which names are used create a package containing a definitive list of names and their equivalent iso3c codes.
+
+e.g. even the countrycode package returns some names from iso3c that aren't expected.
+
+africountrynames package can also serve as example of as minimal package that can be used in teaching for the afrimapr community.
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(countrycode)
+
+library(afriadmin) # partly just to get at country list, also potential to compare with other boundaries
+library(mapview)
+library(knitr) #for kable
+library(dplyr)
+library(ggplot2)
+
+# install.packages("remotes")
+remotes::install_gitlab("dickoa/rgeoboundaries")
+library(rgeoboundaries)
+
+```
+
+
+```{r, eval=TRUE, warning=FALSE}
+
+
+#demo that taking the list of iso3c codes from afriadmin and converting them with package countrycode to names
+#results in some that aren't what you might want
+
+#todo rename afcountries
+data(afcountries)
+
+#countrycode(afcountries$iso3c, origin = 'iso3c', destination = 'iso.name')
+
+countrycode(afcountries$iso3c, origin = 'iso3c', destination = 'country.name')
+
+#countrycode country.name has "Congo - Kinshasa"         "Congo - Brazzaville"
+
+
+
+```
+
+
+
+
