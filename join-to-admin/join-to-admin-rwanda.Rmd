@@ -1,0 +1,63 @@
+---
+title: "join-to-admin-rwanda"
+output: html_document
+---
+  
+Experimenting with joining data to sub-national admin boundaries.
+
+ISSUE :
+There are usually difficulties in joining data to admin boundaries due to spelling, capitalisation and accents.
+
+afrimapr wants to improve that.
+
+First want to document some of the difficulties in the wild.
+
+Also this can be part of upcoming training material.
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(countrycode)
+
+# install.packages("remotes")
+
+#remotes::install_github("afrimapr/afriadmin")
+library(afriadmin) 
+library(mapview)
+library(knitr) #for kable
+library(dplyr)
+library(ggplot2)
+
+remotes::install_gitlab("dickoa/rgeoboundaries")
+library(rgeoboundaries)
+
+```
+
+
+```{r, eval=TRUE, warning=FALSE}
+
+#getting metadata on boundaries available
+
+metarwa <- rgeoboundaries::gb_metadata('rwanda')
+
+metarwa1 <-rgeoboundaries::gb_metadata('rwanda', adm_lvl = 'adm1')
+
+#rwanda has up to adm4
+
+#getting admin boundaries using rgeoboundaries() could also use afriadmin that tries to make simpler
+sfadm1 <- rgeoboundaries::geoboundaries('rwanda', adm_lvl="adm1", type="sscu")
+sfadm2 <- rgeoboundaries::geoboundaries('rwanda', adm_lvl="adm2", type="sscu")
+sfadm3 <- rgeoboundaries::geoboundaries('rwanda', adm_lvl="adm3", type="sscu")
+sfadm4 <- rgeoboundaries::geoboundaries('rwanda', adm_lvl="adm4", type="sscu")
+
+plot(sf::st_geometry(sfadm1))
+plot(sf::st_geometry(sfadm2))
+plot(sf::st_geometry(sfadm3))
+plot(sf::st_geometry(sfadm4))
+
+mapview::mapview(sfadm3, zcol = "shapeName")
+mapview::mapview(sfadm4, zcol = "shapeName")
+
+```
+
