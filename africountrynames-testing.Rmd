@@ -47,6 +47,10 @@ countrycode(afcountries$iso3c, origin = 'iso3c', destination = 'country.name')
 
 #countrycode country.name has "Congo - Kinshasa"         "Congo - Brazzaville"
 
+#useful for me
+#countrycode('rwanda','country.name','iso3c') #[1] "RWA"
+#idea should suggest or pull request that countrycode adds a function iso3c() that just has countryname arg.
+#otherwise need to remember country.name
 
 # can use the codelist from package countrycode, which contains 59 African countries
 # and 743 columns of different codes, names, languages, regex etc.
