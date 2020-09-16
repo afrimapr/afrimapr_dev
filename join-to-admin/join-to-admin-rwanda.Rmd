@@ -14,6 +14,18 @@ First want to document some of the difficulties in the wild.
 
 Also this can be part of upcoming training material.
 
+Reference : 
+Good outlines in here that we can borrow some parts from.
+https://geocompr.robinlovelace.net/attr.html#vector-attribute-joining
+Vignette on joins that goes further, still doesn't provide much advice on how to join when names don't match :
+https://geocompr.github.io/geocompkg/articles/join.html
+From R for datascience, some good diagrams but terminology a bit advanced. Short section on join problems.
+https://r4ds.had.co.nz/relational-data.html#join-problems
+"Check that your foreign keys match primary keys in another table. The best way to do this is with an anti_join(). It’s common for keys not to match because of data entry errors. Fixing these is often a lot of work."
+
+"Be aware that simply checking the number of rows before and after the join is not sufficient to ensure that your join has gone smoothly. If you have an inner join with duplicate keys in both tables, you might get unlucky as the number of dropped rows might exactly equal the number of duplicated rows!"
+
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -56,8 +68,323 @@ plot(sf::st_geometry(sfadm2))
 plot(sf::st_geometry(sfadm3))
 plot(sf::st_geometry(sfadm4))
 
-mapview::mapview(sfadm3, zcol = "shapeName")
-mapview::mapview(sfadm4, zcol = "shapeName")
+#mapview::mapview(sfadm3, zcol = "shapeName")
+#mapview::mapview(sfadm4, zcol = "shapeName")
 
 ```
 
+```{r, csv-data-download, eval=TRUE, warning=FALSE}
+
+#download some data to try to join to admin boundaries
+inurl <- "https://data.humdata.org/dataset/94b26815-cd91-4553-b64d-7a6f153400bc/resource/b07265ad-055e-4ea8-bb95-de3adb1ae0a1/download/rwa_adm3_pop_rphc2012.csv"
+
+#dfpop_adm3 <- read.csv(inurl)
+
+#annoyingly numeric fields get read in as chars with thousands commas
+ # $ ADM3_EN   : chr  "Gitega" "Kanyinya" "Kigali" "Kimisagara" ...
+ # $ ADM3_PCODE: chr  "RW1101" "RW1102" "RW1103" "RW1104" ...
+ # $ ADM3ALT1EN: chr  "" "" "" "" ...
+ # $ Rwanda_T  : chr  "28,728" "21,859" "30,023" "46,753" ...
+ # $ Rwanda_M  : chr  "14,989" "10,777" "15,375" "24,451" ...
+
+# use readr to get around commas in numbers problem
+library(readr)
+#specify which columns are characters and numbers (number copes with commas for thousands)
+#I counted by hand that 1st 14 columns are character variables, and the 9 after are numbers
+dfpop_adm3 <- readr::read_csv(inurl, col_types = c(rep(col_character(),14),rep(col_number(),9)))
+
+# STARTING TO ARRANGE WORKFLOW FOR LOOKING AT THE DATA PRIOR TO ATTEMPTING JOIN
+# could create a decision tree or flow chart
+
+nrow(dfpop_adm3)
+#416 rows
+
+#ADM3_EN contains admin3 names
+dfpop_adm3$ADM3_EN
+
+ #  [1] "Gitega"       "Kanyinya"     "Kigali"       "Kimisagara"   "Mageregere"   "Muhima"       "Nyakabanda"
+ #  [8] "Nyamirambo"   "Nyarugenge"   "Rwezamenyo"   "Bumbogo"      "Gatsata"      "Gikomero"     "Gisozi"    
+ # [15] "Jabana"       "Jali"         "Kacyiru"      "Kimihurura"   "Kimironko"    "Kinyinya"     "Ndera"   
+
+#visual inspection shows that in Title case with no accents 
+
+#check if all names are unique
+length(unique(dfpop_adm3$ADM3_EN))
+#379 #so most, but not all are unique
+
+#I wonder if the ones that are not unique represent the same name in different areas ?
+
+# BOUNDARIES FILE
+
+#what column contains the names of the admin areas ?
+#str shows us structure of the object
+#promising that it shows 416 rows which is the same as our data file
+str(sfadm3)
+# Classes ‘sf’ and 'data.frame':	416 obs. of  6 variables:
+#  $ shapeName : chr  "Gitega" "Kanyinya" "Kigali" "Kimisagara" ...
+#  $ shapeISO  : chr  "None" "None" "None" "None" ...
+#  $ shapeID   : chr  "RWA-ADM3-3_0_0-B1" "RWA-ADM3-3_0_0-B2" "RWA-ADM3-3_0_0-B3" "RWA-ADM3-3_0_0-B4" ...
+#  $ shapeGroup: chr  "RWA" "RWA" "RWA" "RWA" ...
+#  $ shapeType : chr  "ADM3" "ADM3" "ADM3" "ADM3" ...
+#  $ geometry  :sfc_MULTIPOLYGON of length 416; first list element: List of 1
+
+# shapeName is the column we want because it contains the differing names of each admin area
+
+# does the shapeName column also contain non-unique names like the population data file does ?
+length(unique(sfadm3$shapeName))
+# yes, also 379
+
+# Aha seems to show that no names are unique to just one of the datasets
+setdiff(dfpop_adm3$ADM3_EN, sfadm3$shapeName )
+#character(0)
+
+#So tricky that we want to look at the repeated names 
+#the pop data file has ADM2_EN names too
+dfpop3_dups <- dfpop_adm3[ duplicated(dfpop_adm3$ADM3_EN), ]
+#this does show some as suspected where same adm3 names are in diff adm2 regions (e.g. Kageyo)
+#BUT also some seem not to be duplicates (e.g. Busasamana)
+sort(dfpop3_dups$ADM3_EN)
+#  [1] "Busasamana" "Cyanika"    "Kageyo"     "Kageyo"     "Karama"     "Karama"     "Kibirizi"   "Kigarama"  
+#  [9] "Kigoma"     "Kinazi"     "Kinihira"   "Mbazi"      "Muganza"    "Muganza"    "Mukarange"  "Muko"      
+# [17] "Mukura"     "Murama"     "Murambi"    "Murambi"    "Murundi"    "Musha"      "Nemba"      "Ngoma"     
+# [25] "Ngoma"      "Nyagisozi"  "Nyamiyaga"  "Nyange"     "Nyarugenge" "Remera"     "Remera"     "Remera"    
+# [33] "Rugarama"   "Ruhango"    "Rukomo"     "Rwimbogo"   "Tumba"  
+
+#does give 2 results
+busasamana <- dfpop_adm3[ dfpop_adm3$ADM3_EN == "Busasamana", ]
+#issue because duplicated does this : determines which elements of a vector or data frame are duplicates of elements with smaller subscripts
+
+#must be better tidyverse solution
+#distinct(dfpop_adm3,ADM3_EN) # this does same as unique
+
+dfpop3_dups <- 
+  dfpop_adm3 %>%
+  #group by the name column
+  group_by(ADM3_EN) %>%
+  #add a column with number of each name
+  mutate(n=n()) %>%
+  #filter names that appear more than once
+  filter(n>1) 
+
+#can do this for the boundaries too
+sfadm3_dups <- 
+  sfadm3 %>%
+  #group by the name column
+  group_by(shapeName) %>%
+  #add a column with number of each name
+  mutate(n=n()) %>%
+  #filter names that appear more than once
+  filter(n>1) 
+
+# can I write a function to do that
+# relying on dplyr or in base ?
+# this keeps the returned object as sf if it was before
+# if no duplicates, it returns df with nrow=0, I could get it to return NULL or 0
+filter_duplicates <- function(df, column_name) 
+{
+  dfdup <- df %>%
+    #group by the name column
+    group_by(.data[[column_name]]) %>%
+    #add a column with number of each name
+    mutate(n=n()) %>%
+    #filter names that appear more than once
+    filter(n>1) 
+  
+  if (nrow(dfdup)==0) {
+    warning("no duplicates")
+    dfdup <- NULL
+  }
+  
+  return(dfdup)
+}
+
+
+#plot just duplicates
+plot(sf::st_geometry(sfadm3_dups))
+mapview::mapview(sfadm3_dups)
+
+#colour by shapename - slightly too many to see pairs clearly
+mapview::mapview(sfadm3_dups, zcol='shapeName')
+
+#Probably want to join with multiple keys (shared columns) like below
+#BUT the regoboundaries file doesn't have the adm2 names that are needed
+# sfjoined <- left_join(sfadm3, dfpop_adm3, 
+#                       by = c("ADM2_EN", "shapeName" = "ADM3_EN"))
+
+
+#try loading the boundary data from hdx
+#https://data.humdata.org/dataset/2768bdfd-6486-4963-8e3d-e63149478eb4/resource/176eaace-708c-46b3-94e9-d5ba91cca08c/download/rwa_adm_2006_nisr_wgs1984_20181002_shp.zip
+
+# library(rhdx)
+# 
+# set_rhdx_config(hdx_site = "prod")
+# list_of_ds <- search_datasets("rwanda boundaries", rows = 2)
+# list_of_ds
+
+#admin boundaries do come up first
+# [[1]]
+# <HDX Dataset> 2768bdfd-6486-4963-8e3d-e63149478eb4 
+#   Title: Rwanda administrative levels 0-4 boundaries
+#   Name: rwanda-administrative-boundaries-level-1-4
+#   Date: 09/27/2018
+#   Tags (up to 5): administrative divisions, common operational dataset - cod, gazetteer, geodata
+#   Locations (up to 5): rwa
+#   Resources (up to 5): rwa_gazetteer_rphc2012.xlsx, rwa_adm_2006_NISR_WGS1984_20181002_SHP.zip
+
+# each dataset consists of a number of resources
+# (see https://github.com/dickoa/rhdx)
+
+#ds <- list_of_ds[[1]]
+
+# see what resources there are
+#get_resources(ds)
+
+# [[1]]
+# <HDX Resource> 95b0f509-7bbb-44cb-a783-92c8208fdfea 
+#   Name: rwa_gazetteer_rphc2012.xlsx
+#   Description: Rwanda administrative level 0 (country), 1 (province), 2 (district), 3 (sector), and 4 (cell [incomplete]) gazetteer
+#   Size: 167305
+#   Format: XLSX
+# 
+# [[2]]
+# <HDX Resource> 176eaace-708c-46b3-94e9-d5ba91cca08c 
+#   Name: rwa_adm_2006_NISR_WGS1984_20181002_SHP.zip
+#   Description: Rwanda administrative level 0 (country), 1 (province), 2 (district), 3 (sector), and 4 (cell [incomplete]) gazetteer
+#   Size: 15484795
+#   Format: ZIPPED SHAPEFILES
+
+# we want the 2nd set, the zipped shapefiles
+
+# first get information about the first resource
+#rs <- get_resource(ds, 1)
+
+# find which layers in file
+#mlayers <- rhdx::get_resource_layers(rs, download_folder=getwd())
+
+#arrg
+#Error: This (spatial) data format is not yet supported - i think maybe because multiple layers in one zip
+
+# then download the datafiles
+#sfrwa <- read_resource(rs, download_folder = tempdir())
+
+
+# instead download the zip by hand from HDX
+# https://data.humdata.org/dataset/rwanda-administrative-boundaries-level-1-4
+
+# choose the admin 3 filename, ending .shp
+filename <- "rwa_adm3_2006_NISR_WGS1984_20181002.shp"
+#double slashes are just to avoid potential confusion between windows and linux
+folder <- "C:\\Dropbox\\_afrimapr\\hdx\\"
+
+filename <- paste0(folder, filename)
+
+# read data from file into sf object
+sfrwa_adm3 <- sf::st_read(filename)
+
+# check str(ucture) of new object
+str(sfrwa_adm3)
+# Classes ‘sf’ and 'data.frame':	416 obs. of  15 variables:
+#  $ ADM0_EN   : chr  "Rwanda" "Rwanda" "Rwanda" "Rwanda" ...
+#  $ ADM0_FR   : chr  "Rwanda (le)" "Rwanda (le)" "Rwanda (le)" "Rwanda (le)" ...
+#  $ ADM0_RW   : chr  "U Rwanda" "U Rwanda" "U Rwanda" "U Rwanda" ...
+#  $ ADM0_SW   : chr  "Rwanda" "Rwanda" "Rwanda" "Rwanda" ...
+#  $ ADM0_PCODE: chr  "RW" "RW" "RW" "RW" ...
+#  $ ADM1_EN   : chr  "Kigali City" "Kigali City" "Kigali City" "Kigali City" ...
+#  $ ADM1_FR   : chr  "Ville de Kigali" "Ville de Kigali" "Ville de Kigali" "Ville de Kigali" ...
+#  $ ADM1_RW   : chr  "Umujyi wa Kigali" "Umujyi wa Kigali" "Umujyi wa Kigali" "Umujyi wa Kigali" ...
+#  $ ADM1_PCODE: chr  "RW1" "RW1" "RW1" "RW1" ...
+#  $ ADM2_EN   : chr  "Nyarugenge" "Nyarugenge" "Nyarugenge" "Nyarugenge" ...
+#  $ ADM2_PCODE: chr  "RW11" "RW11" "RW11" "RW11" ...
+#  $ ADM3_EN   : chr  "Gitega" "Kanyinya" "Kigali" "Kimisagara" ...
+#  $ ADM3_PCODE: chr  "RW1101" "RW1102" "RW1103" "RW1104" ...
+#  $ ADM3ALT1EN: chr  NA NA NA NA ...
+#  $ geometry  :sfc_MULTIPOLYGON of length 416; first list element: List of 1
+#   ..$ :List of 1
+#   .. ..$ : num [1:464, 1:2] 30 30 30 30 30 ...
+#   ..- attr(*, "class")= chr [1:3] "XY" "MULTIPOLYGON" "sfg"
+#  - attr(*, "sf_column")= chr "geometry"
+#  - attr(*, "agr")= Factor w/ 3 levels "constant","aggregate",..: NA NA NA NA NA NA NA NA NA NA ...
+#   ..- attr(*, "names")= chr [1:14] "ADM0_EN" "ADM0_FR" "ADM0_RW" "ADM0_SW" ...
+
+# good that it has 416 obs (same as the data file that we want to join to it)
+# and that it has columns containing names of the admin3 regions, and the admin2 regions that they exists in
+# (allowing us to differentiate between admin3 regions with the same names)
+# ADM3_EN ADM2_EN
+
+# these are the same column names as in our population datafile 
+#checking on matches of names, this time produces no non matches
+non_matches <- str_subset(sfrwa_adm3$ADM3_EN, dfpop_adm3$ADM3_EN, negate = TRUE)
+
+#making the join based on the two columns
+sfjoined <- dplyr::left_join(sfrwa_adm3, dfpop_adm3,
+                       by = c("ADM2_EN", "ADM3_EN"))
+
+# if columns had been named differently in each object
+# left_join(sf, df, by = c("name1_in_obj1"="name1_in_obj2", "name2_in_obj1"="name2_in_obj2"))
+
+names(sfjoined)
+# can see the population data (e.g. Rwanda_T, Rwanda_M, Urban_T) have been added on to the geometry column
+
+#  [1] "ADM0_EN.x"    "ADM0_FR.x"    "ADM0_RW.x"    "ADM0_SW.x"    "ADM0_PCODE.x" "ADM1_EN.x"    "ADM1_FR.x"   
+#  [8] "ADM1_RW.x"    "ADM1_PCODE.x" "ADM2_EN"      "ADM2_PCODE.x" "ADM3_EN"      "ADM3_PCODE.x" "ADM3ALT1EN.x"
+# [15] "ADM0_EN.y"    "ADM0_FR.y"    "ADM0_RW.y"    "ADM0_SW.y"    "ADM0_PCODE.y" "ADM1_EN.y"    "ADM1_FR.y"   
+# [22] "ADM1_RW.y"    "ADM1_PCODE.y" "ADM2_PCODE.y" "ADM3_PCODE.y" "ADM3ALT1EN.y" "Rwanda_T"     "Rwanda_M"    
+# [29] "Rwanda_F"     "Urban_T"      "Urban_M"      "Urban_F"      "Rural_T"      "Rural_M"      "Rural_F"     
+# [36] "geometry"
+
+#duplicate columns in the two objects are give the suffixes .x & .y 
+
+# see below for what would have happened if we had joined just based on the admin3 column
+
+# view total popn. in an interactive map
+mapview::mapview(sfjoined, zcol='Rwanda_T')
+
+# view total popn. in a static map (using sf)
+plot( sfjoined["Rwanda_T"])
+
+# view gender ratio F/M
+sfjoined$f_div_m <- sfjoined$Rwanda_F/sfjoined$Rwanda_M
+mapview::mapview(sfjoined, zcol='f_div_m')
+
+# compare gender ratio and urban rural ratio side by side in static maps
+sfjoined$rur_div_urb <- sfjoined$Rural_T/sfjoined$Urban_T
+
+# view total popn. in a static map (using sf)
+plot( sfjoined[c('f_div_m','rur_div_urb')])
+
+# note, these data also both contain a unique column ADM3_PCODE which could have been used to join them
+# but not all boundary and data files contain pcodes
+
+
+# what would have happened if we had joined just based on the admin3 column ?
+sfjoin_justadm3 <- dplyr::left_join(sfrwa_adm3, dfpop_adm3, by = "ADM3_EN")
+
+#this looks fine, no clue that anything is wrong
+mapview::mapview(sfjoin_justadm3, zcol='Rwanda_T')
+
+#str(sfjoin_justadm3)
+#Classes ‘sf’ and 'data.frame':	506 obs. of  37 variables:
+#506 rows, where we only had 416 rows before
+
+#TODO, how is it possible to give a warning that something unexpected has happened ?
+# i.e. extra rows have been added due to the duplicates
+# as Hadley points out in r4ds checking nrows is not enough
+# because could get situation where some are duplicated and others not matched at all
+
+# again we can check whether there are duplicates in the names using my function from above
+dups_after_join <- filter_duplicates(sfjoin_justadm3, "ADM3_EN")
+
+# but remember that duplicates is possibly a rarer problem than names that don't match
+
+# can I find some Rwanda data on HDX (or Rwandan Gov) that demos the non matching issue ?
+# http://www.devinfo.statistics.gov.rw/di7web/libraries/aspx/Catalog.aspx
+
+# from HDX Global Multidimensional Poverty Index (MPI)
+# https://data.humdata.org/dataset/rwanda-mpi
+# https://data.humdata.org/dataset/06b01ee1-5691-4c25-af69-e50bde0f5b57/resource/250bd322-098b-4761-a08a-ec2d77df54f7/download/rwa-subnational-results-mpi-2020.xlsx
+
+mpiurl <- "https://data.humdata.org/dataset/06b01ee1-5691-4c25-af69-e50bde0f5b57/resource/250bd322-098b-4761-a08a-ec2d77df54f7/download/rwa-subnational-results-mpi-2020.xlsx"
+
+
+
+```
