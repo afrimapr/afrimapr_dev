@@ -25,6 +25,22 @@ https://r4ds.had.co.nz/relational-data.html#join-problems
 
 "Be aware that simply checking the number of rows before and after the join is not sufficient to ensure that your join has gone smoothly. If you have an inner join with duplicate keys in both tables, you might get unlucky as the number of dropped rows might exactly equal the number of duplicated rows!"
 
+fuzzyjoin package :
+https://github.com/dgrtwo/fuzzyjoin
+
+safejoin package looks good but in early development and not on CRAN :
+could provide inspiration for advice to provide to new users 
+https://github.com/moodymudskipper/safejoin
+remotes::install_github("moodymudskipper/safejoin")
+
+
+https://github.com/mmurtaghw/Census-Visualisation-Rwanda/blob/master/src/Vulnerability_Mapping.R
+
+Rwanda, number of admin units
+adm1 5    provinces  
+adm2 30   districts
+adm3 ~416 sectors
+adm4    cells
 
 
 ```{r setup, include=FALSE}
@@ -40,6 +56,7 @@ library(mapview)
 library(knitr) #for kable
 library(dplyr)
 library(ggplot2)
+library(fuzzyjoin)
 
 remotes::install_gitlab("dickoa/rgeoboundaries")
 library(rgeoboundaries)
@@ -379,11 +396,223 @@ dups_after_join <- filter_duplicates(sfjoin_justadm3, "ADM3_EN")
 # can I find some Rwanda data on HDX (or Rwandan Gov) that demos the non matching issue ?
 # http://www.devinfo.statistics.gov.rw/di7web/libraries/aspx/Catalog.aspx
 
+
 # from HDX Global Multidimensional Poverty Index (MPI)
+# it only has for 5 regions, not very interesting
 # https://data.humdata.org/dataset/rwanda-mpi
 # https://data.humdata.org/dataset/06b01ee1-5691-4c25-af69-e50bde0f5b57/resource/250bd322-098b-4761-a08a-ec2d77df54f7/download/rwa-subnational-results-mpi-2020.xlsx
+# mpiurl <- "https://data.humdata.org/dataset/06b01ee1-5691-4c25-af69-e50bde0f5b57/resource/250bd322-098b-4761-a08a-ec2d77df54f7/download/rwa-subnational-results-mpi-2020.xlsx"
+# # tried to read in excel file directly but not well formatted for machine reading
+# library(readxl)
+# library(httr)
+# httr::GET(mpiurl, write_disk(tf <- tempfile(fileext = ".xlsx")))
+# df <- readxl::read_excel(tf)
 
-mpiurl <- "https://data.humdata.org/dataset/06b01ee1-5691-4c25-af69-e50bde0f5b57/resource/250bd322-098b-4761-a08a-ec2d77df54f7/download/rwa-subnational-results-mpi-2020.xlsx"
+
+# http://www.devinfo.statistics.gov.rw/di7web/libraries/aspx/Catalog.aspx
+
+filename <- "C:\\Users\\andy.south\\Google Drive\\afrimapr-gdrive\\training\\rwanda-training\\rwanda-data\\DevInfoRwanda_2013_en.csv"
+
+df1 <- readr::read_csv(filename)
+
+str(df1)
+# tibble [30,788 x 9]
+ # $ Indicator  : chr [1:30788] "1.02 Poverty gap ratio" "1.02 Poverty gap ratio" "1.02 Poverty gap ratio" 
+ # $ Unit       : chr [1:30788] "Percent" "Percent" "Percent" "Percent" ...
+ # $ Subgroup   : chr [1:30788] "Total" "Total" "Total" "Rural Access to Internet: Cyber Cafe" ...
+ # $ Area       : chr [1:30788] "Rwanda" "Rwanda" "Rwanda" "Rwanda" ...
+ # $ Area ID    : num [1:30788] 5 5 5 5 5 5 5 6 9 10 ...
+ # $ Time Period: chr [1:30788] "2000-2001" "2005-2006" "2010-2011" "2012" ...
+ # $ Source     : chr [1:30788] 
+ # $ Data Value : num [1:30788] 24.4 22.3 14.8 1.1 0.7 1.2 58.9 22.7 65.5 62.3 ...
+ # $ Footnotes  : logi [1:30788] NA NA NA NA NA NA ...
+
+
+# after I registered I downloaded this 10% sample of the 2012 census
+# not allowed to redistribute
+# https://microdata.statistics.gov.rw/index.php/catalog/65/get_microdata
+# (may also be some other data sources there)
+
+# formatting and visualisation code here :
+# https://github.com/mmurtaghw/Census-Visualisation-Rwanda
+
+
+```
+
+
+```{r, point-data-airports, eval=TRUE, warning=FALSE}
+
+# airports from RNIS via hdx
+# Rwanda Airports as published by Rwandan National Institute of Statistics
+# https://data.humdata.org/dataset/rwanda-ports
+# click to download & unzip
+
+filename <- "C:\\Users\\andy.south\\Google Drive\\afrimapr-gdrive\\training\\rwanda-training\\rwanda-data\\RWA_Airports_NISR.shp"
+
+# read in a shapefile (shp) with sf package
+sfairports <- sf::st_read(filename)
+
+# only 3 
+str(sfairports)
+# Classes ‘sf’ and 'data.frame':	3 obs. of  7 variables:
+#  $ NAME      : chr  "KIGALI" "GISENYI" "KAMEMBE"
+#  $ USE       : chr  "Joint Military/Civilian" "Other" "Other"
+#  $ CLASS_NAME: chr  "RW45746" "RW21133" "RW43879"
+#  $ FEATURE   : chr  "Airport/Airfield" "Airport/Airfield" "Airport/Airfield"
+#  $ ICAO      : chr  "HRYR" "HRYG" "HRZA"
+#  $ ELEVATION : chr  "1491" "1556" "1591"
+#  $ geometry  :sfc_MULTIPOINT of length 3; first list element:  'XY' num [1, 1:2] 30.14 -1.97
+mapview::mapview(sfairports)
+
+# hdx also has one from OpenStreetMap
+# https://data.humdata.org/dataset/hotosm_rwa_airports
+# download the first one that is a points shapefile
+filename <- "C:\\Users\\andy.south\\Google Drive\\afrimapr-gdrive\\training\\rwanda-training\\rwanda-data\\hotosm_rwa_airports_points.shp"
+
+# read in a shapefile (shp) with sf package
+sfosmairports <- sf::st_read(filename)
+
+str(sfosmairports)
+#6 airports of which 3 are helipads, but doesn't have Kigali
+#Classes ‘sf’ and 'data.frame':	6 obs. of  12 variables:
+
+mapview::mapview(sfosmairports)
+
+# both files have a geometry column, this is what places the data on a map
+# in both cases there are two numbers per row, the coordinates of a single point
+# the data are classed differently one as POINT and one as MULTIPOINT but that doesn't matter for us now
+# (MULTIPOINT allows for the potential to have > 1 point per row)
+sfosmairports$geometry[1]
+# Geometry set for 1 feature 
+# geometry type:  POINT
+# dimension:      XY
+# bbox:           xmin: 29.73655 ymin: -2.595473 xmax: 29.73655 ymax: -2.595473
+# geographic CRS: WGS 84
+# POINT (29.73655 -2.595473)
+
+sfairports$geometry[1]
+# Geometry set for 1 feature 
+# geometry type:  MULTIPOINT
+# dimension:      XY
+# bbox:           xmin: 30.13936 ymin: -1.970528 xmax: 30.13936 ymax: -1.970528
+# geographic CRS: WGS 84
+# MULTIPOINT ((30.13936 -1.970528))
+
+
+# comparing the two files
+mapview::mapview(list(sfosmairports, sfairports), col.regions=list('red','blue'))
+
+# airport names
+sfairports$NAME
+#[1] "KIGALI"  "GISENYI" "KAMEMBE"
+sfosmairports$name
+#[1] "Butare Airport" "Nemba Airport"  "Gabiro Airport" NA               NA               NA      
+
+# so the airports data from HDX reportedly from RNIS doesn't have Goma airport
+# and the data from HDX from OSM doesn't have Gisenyi or Kigali
+# 3 helipads don't have names
+
+# an exercise could be to make a complete airports dataset for rwanda
+
+# to get a dataset based on both
+# we can 'bind' the rows together using rbind, but first they need to have the same columns
+# if we try to bind them together when they have different columns an error will be generated
+
+sfairportsboth <- rbind(sfosmairports, sfairports)
+#Error: arguments have different crs
+
+# aha this shows that they have different crs (Coordinate Reference System)
+sf::st_crs(sfosmairports)
+# Coordinate Reference System:
+#   User input: WGS 84 etc.
+sf::st_crs(sfairports)
+# Coordinate Reference System:
+#   User input: unnamed etc.
+
+# here seems that they should have the same CRS (i.e. the most common one ESPSG 4326)
+# can set the one that is not specified from the other
+sf::st_crs(sfairports) <- sf::st_crs(sfosmairports)
+
+#once the crs's match then get the error that the numbers of columns don't match
+#Error in rbind.data.frame(...) : numbers of columns of arguments do not match
+
+# dplyr::bind_rows does similar job allows binding and fills in empty columns with NAs
+sfairportsboth <- dplyr::bind_rows(sfosmairports, sfairports)
+
+# we can select & rename columns before the binding to make the final output cleaner & more useful
+# we want to have the two files with the same column names with useful information in
+
+# mutate allows us to rename columns, select to restrict columns
+
+sfairports_tobind <- sfairports %>% 
+                     mutate(name=NAME) %>%
+                     mutate(type=FEATURE)  %>%
+                     select(c(name,type,geometry))
+
+sfosmairports_tobind <- sfosmairports %>% 
+                     mutate(type=aeroway)  %>%
+                     select(c(name,type,geometry))
+
+#now bind to get a neat result with 9 rows and 3 columns
+sfairportsboth <- dplyr::bind_rows(sfosmairports_tobind, sfairports_tobind)
+
+str(sfairportsboth)
+#Classes ‘sf’ and 'data.frame':	9 obs. of  3 variables:
+
+# we can view an interactive map where the legend (using zcol) is set to the type, and labels are set to name
+mapview::mapview(sfairportsboth, zcol='type', label='name')
+
+# you could further edit values to make the data more consistent
+
+
+```
+
+```{r, line-data-airports, eval=TRUE, warning=FALSE}
+
+# rwanda main roads
+# https://data.humdata.org/dataset/rwanda-road-network
+# click to download main roads (it may give a download warning), unzip all files
+
+filename <- "C:\\Users\\andy.south\\Google Drive\\afrimapr-gdrive\\training\\rwanda-training\\rwanda-data\\rwa_trs_roads_osm.shp"
+
+# read in a shapefile (shp) with sf package
+sfmroads <- sf::st_read(filename)
+
+str(sfmroads)
+# 1080 rows, 21 columns including one for geometry
+
+# Classes ‘sf’ and 'data.frame':	1080 obs. of  21 variables:
+# ...
+#  $ onme      : chr  "NR4" "NR4" "NR4" "NR4" ...
+#  $ rtenme    : chr  "KN 5 Rd" NA "KN 5 Rd" NA ...
+#  $ ntlclass  : chr  "trunk" "trunk" "trunk" "trunk" ...
+#  $ fclass    : int  2 2 2 2 2 2 2 2 2 2 ...
+#  $ numlanes  : int  2 NA 2 NA NA NA 2 NA 2 NA ...
+# ...
+#  $ geometry  :sfc_LINESTRING of length 1080; first list element:  'XY' num [1:16, 1:2] 30.1 30.1 30.1 30.1 30.1 
+
+# have a quick look at a map
+mapview::mapview(sfmroads)
+
+# looking at the first row of the geometry column
+# there are multiple pairs of coordinates because the file contains lines rather than points 
+
+sfmroads$geometry[1]
+# Geometry set for 1 feature 
+# geometry type:  LINESTRING
+# dimension:      XY
+# bbox:           xmin: 30.12028 ymin: -1.962854 xmax: 30.12512 ymax: -1.961005
+# geographic CRS: WGS 84
+# LINESTRING (30.12028 -1.961005, 30.12065 -1.961...
+
+# we can make the interactive map more informative as we did before using columns from the data 
+# look at the data in RStudio to choose which columns contain most useful data 
+# either click on the object name in the Environment tab top right or type :  
+View(sfmroads)
+
+# to add a legend using zcol, and hover labels using label
+mapview::mapview(sfmroads, zcol='ntlclass', label='onme')
+
 
 
 

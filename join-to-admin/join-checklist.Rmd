@@ -1,0 +1,35 @@
+---
+title: "join-checklist"
+output: html_document
+---
+  
+## Checklist to support joining data to sub-national admin boundaries.
+
+ISSUE :
+There are usually difficulties in joining data to admin boundaries due to spelling, capitalisation, accents etc..
+
+afrimapr wants to improve that, particularly for users relatively new to these issues.
+
+Here we start to develop a checklist identifying code steps that users can work through to aid the joining process.
+
+The use-case is that you want to plot data on a map but the data only have names of regions or places. You also can get some spatial data that does have the coordinates of the regions or places. The data are in a spreadsheet type format and the spatial data are in some kind of GIS format.
+
+STEPS
+
+1. read the data into R as a dataframe (dfdata)
+1. read in the spatial data to R as a sf object (sfshapes)
+1. check that dfdata is a data.frame and sfshapes is a sf object with class(dfdata) and class(sfshapes) 
+1. view both objects and check that they have a column that contains the same or similar names to the other. 
+1. try initial join dplyr::left_join()
+
+
+TODO
+[find example data that can go in here that can be super easily used]
+[this may be similar to what Laurie is doing]
+[maybe country data from gapminder or similar]
+[could subset to African countries from naturalearth]
+[look at learnr for developing this as an interactive tutorial]
+
+
+
+
