@@ -19,8 +19,12 @@ STEPS
 1. read the data into R as a dataframe (dfdata)
 1. read in the spatial data to R as a sf object (sfshapes)
 1. check that dfdata is a data.frame and sfshapes is a sf object with class(dfdata) and class(sfshapes) 
-1. view both objects and check that they have a column that contains the same or similar names to the other. 
-1. try initial join dplyr::left_join()
+1. view both objects and identify the columns that contain the information (e.g. place names) you wish to join the data on.
+1. use distinct to check the names in the two columns.
+1. think about how you want the names to appear on the map, make a note of any changes to the names you would like to make. 
+1. use str_c to create a search and str_subset to detect matches and non-matches.
+1. use recode to rename the place names so that they match and appear how you wish them to appear on the map. 
+1. try initial join dplyr::left_join(), check that the datasets match up by checking the dimensions of the new dataframe.
 
 
 TODO
