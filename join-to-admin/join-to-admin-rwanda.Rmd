@@ -567,13 +567,15 @@ mapview::mapview(sfairportsboth, zcol='type', label='name')
 
 ```
 
-```{r, line-data-airports, eval=TRUE, warning=FALSE}
+```{r, line-data-roads, eval=TRUE, warning=FALSE}
 
 # rwanda main roads
 # https://data.humdata.org/dataset/rwanda-road-network
 # click to download main roads (it may give a download warning), unzip all files
 
-filename <- "C:\\Users\\andy.south\\Google Drive\\afrimapr-gdrive\\training\\rwanda-training\\rwanda-data\\rwa_trs_roads_osm.shp"
+# filename <- "C:\\Users\\andy.south\\Google Drive\\afrimapr-gdrive\\training\\rwanda-training\\rwanda-data\\rwa_trs_roads_osm.shp"
+
+filename <- r"(C:\Users\andy.south\Google Drive\afrimapr-gdrive\training\rwanda-training\rwanda-data\rwa_trs_roads_osm.shp)"
 
 # read in a shapefile (shp) with sf package
 sfmroads <- sf::st_read(filename)
