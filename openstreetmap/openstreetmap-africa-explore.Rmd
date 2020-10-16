@@ -1,0 +1,138 @@
+---
+title: "openstreetmap-africa-explore"
+output: html_document
+---
+  
+## starting to look at accessing useful OSM data for Africa
+
+ISSUE :
+How best to extract data for particular countries
+
+Or first example to extract motorways or similar for the whole continent to have an example lines dataset for training
+
+osmdata package seems best.
+https://cran.r-project.org/web/packages/osmdata/vignettes/osmdata.html
+https://dominicroye.github.io/en/2018/accessing-openstreetmap-data-with-r/
+
+opq_string() gives overpass query to test at : https://overpass-turbo.eu/
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+if(!require("osmdata")) install.packages("osmdata")
+
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(osmdata)
+
+```
+
+```{r, osmdata-examples, eval=TRUE, warning=FALSE}
+
+#starting example from osmdata vignette
+sf1 <- opq(bbox = 'greater london uk') %>%  
+    add_osm_feature(key = 'highway', value = 'motorway')  %>%
+    #opq_string()
+    osmdata_sf()
+plot(sf::st_geometry(sf1$osm_lines))
+mapview(sf1$osm_lines)
+
+# trimming data by polygon bbox
+# bb <- getbb ('london uk', format_out = 'polygon')
+# sf1 <- opq(bbox = bb) %>%
+#     add_osm_feature(key = 'highway', value = 'motorway') %>%
+#     osmdata_sf () %>%
+#     trim_osmdata (bb)
+
+```
+
+
+```{r, africa-motorways, eval=TRUE, warning=FALSE}
+
+# testing getting bboxes for africa
+bbkenya <- getbb("kenya", featuretype = 'country')
+# x 33.90969 41.90675
+# y -4.89952  4.62000
+bbalgeria <- getbb("algeria", featuretype = 'country')
+
+bbafrica <- getbb("africa", featuretype = 'continent')
+# x  -7.242188 42.75781
+# y -13.497566 36.50243
+
+#note getbb(format_out='sf_polygon') #to be able to plot in sf
+sfbb <- getbb("kenya", featuretype='country', format_out='sf_polygon')
+
+sfbb <- getbb("africa", featuretype = 'continent', format_out='sf_polygon')
+#but this gave 2 polygons one in Venezuela one in Kansas
+#mapview(sfbb[1,])
+#mapview(sfbb[2,])
+
+#dataframe returns 10 results, the first is the continent
+dfbb <- getbb("africa", featuretype = 'continent', format_out='data.frame')
+dfbb[1]
+# but seems I can't get a polygon for it
+# dfbb[1,'boundingbox']
+# "-13.4975662" "36.5024338"  "-7.2421878"  "42.7578122" 
+
+# coords seem the same as from getbb with default feature type
+# BUT seems to me not to include full africa extent
+# eg not far west of senegal
+#getbb("senegal", featuretype = 'country')
+# x -17.78624 -11.34594
+# y  12.23728  16.69197
+
+
+#NOTE features are added as an AND operation
+#to achieve OR have to do separate queries & combine with c(a,b)
+
+#timeout in secs, here 3 mins
+
+sf1 <- opq(timeout=180, bbox = bbkenya) %>%  
+    #add_osm_feature(key = 'highway', value = 'motorway')  %>%
+    #add_osm_feature(key = 'highway', value = 'trunk')  %>% 
+    add_osm_feature(key = 'highway', value = 'primary')  %>%  
+    #opq_string() #query to test at https://overpass-turbo.eu/
+    osmdata_sf()
+plot(sf::st_geometry(sf1$osm_lines))
+
+mapview(sf1$osm_lines)
+
+# downloading motorways for algeria worked but seemingly none in Kenya
+sfmw_alg <- opq(timeout=900, bbox = bbalgeria) %>%  
+    add_osm_feature(key = 'highway', value = 'motorway')  %>%
+    #add_osm_feature(key = 'highway', value = 'trunk')  %>% 
+    #add_osm_feature(key = 'highway', value = 'primary')  %>%  
+    osmdata_sf()
+plot(sf::st_geometry(sfmw$osm_lines))
+
+# try to download all motorways for Africa
+# but Africa bbox looks dodgy at the moment
+sfmw <- opq(timeout=900, bbox = bbafrica) %>%  
+    add_osm_feature(key = 'highway', value = 'motorway')  %>%
+    #add_osm_feature(key = 'highway', value = 'trunk')  %>% 
+    #add_osm_feature(key = 'highway', value = 'primary')  %>%  
+    osmdata_sf()
+plot(sf::st_geometry(sfmw$osm_lines))
+
+# trimming data by polygon bbox
+# bb <- getbb ('london uk', format_out = 'polygon')
+# sf1 <- opq(bbox = bb) %>%
+#     add_osm_feature(key = 'highway', value = 'motorway') %>%
+#     osmdata_sf () %>%
+#     trim_osmdata (bb)
+
+
+```
+
+# trying global roads inventory project
+# https://www.globio.info/download-grip-dataset
+# GRIP mainly aimed at providing a roads dataset that is easily usable for scientific global environmental and biodiversity modelling projects. The dataset is not suitable for navigation. GRIP4 is provided under an Open Data Commons Open Database License (ODbL) and is free to use.
+# https://dataportaal.pbl.nl/downloads/GRIP4/GRIP4_Region3_vector_shp.zip
+
+# looks good in QGIS
+# road types highways and primary roads
+# gp_rtp 1 & 2
+
+
+
