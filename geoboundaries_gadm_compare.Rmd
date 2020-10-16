@@ -1,0 +1,53 @@
+---
+title: "geoboundaries_gadm_compare"
+output: html_document
+---
+
+Document to compare geoboundaries to GADM for Africa.
+Initially also to check on encoding issues with names in geoboundaries.
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(afriadmin) # partly just to get at country list, also potential to compare with other boundaries
+library(mapview)
+library(knitr) #for kable
+library(dplyr)
+library(ggplot2)
+
+# install.packages("remotes")
+#remotes::install_gitlab("dickoa/rgeoboundaries")
+# 2020-09-09 testing andy fork with patch to encoding issues
+#remotes::install_github("andysouth/rgeoboundaries", ref='utf8-for-simplified')
+library(rgeoboundaries)
+
+```
+
+
+Testing encoding of names from geoboundaries simple and precise
+(with my patch added)
+```{r, eval=TRUE, warning=FALSE}
+
+data(afcountries) #from afriadmin - change to better
+
+for( country in sort(afcountries$name[afcountries$name!="Western Sahara"]))
+{
+  #cat(country)
+  
+  #try admin lvl1 first
+  sfprecise <- rgeoboundaries::geoboundaries(country, adm_lvl=1, type="hpscu")
+  sfsimple <- rgeoboundaries::geoboundaries(country, adm_lvl="adm1", type="sscu")
+  
+  
+  cat(country, "PRECISE:", sfprecise$shapeName, "\n")
+  cat(country, "SIMPLE:", sfsimple$shapeName, "\n\n")
+  
+}
+
+
+```
+
+
+
+
