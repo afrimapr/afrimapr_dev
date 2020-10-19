@@ -1,0 +1,36 @@
+---
+title: "covid-hera-hdx-explore"
+output: html_document
+---
+  
+# HERA on HDX have various subnational covid data for ~16 African countries
+# starting to explore them  
+# can potentially use as case study for data joining
+  
+https://data.humdata.org/organization/hera-humanitarian-emergency-response-africa?
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#todo add afriadmin
+
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(sf)
+
+#using new path specification avoiding double slashes
+folder <- r"(C:\Dropbox\_afrimapr\data\covid-hera-hdx\)"
+
+```
+
+
+```{r, hera-togo, eval=TRUE, warning=FALSE}
+
+dftgo <- readr::read_csv2(r"(C:\Dropbox\_afrimapr\data\covid-hera-hdx\tgo_subnational_covid19_hera.csv)")
+
+#REGION column contains region names
+
+
+```
