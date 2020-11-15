@@ -16,29 +16,35 @@
 
 #working that list of countries built up from clicks
 
-#next steps
+# TODO
 # add random generation of country names
-# check whether click is chosen country
-# add timer
+# fix 'play again' button
 
 
 library(shiny)
 #library(ggplot2)
 library(afrilearndata)
 library(sf)
+library(glue) #?may be needed by time module
+
+source("modules/time-module.R")
+source("modules/welcome-module.R")
 
 
 ui <- fluidPage(
   fluidRow(
     column(width = 12,
-           plotOutput("plot1", height = 300,
+           plotOutput("plot1", height = 600,
                       # Equivalent to: click = clickOpts(id = "plot_click")
                       click = "plot1_click"
            )
     )
   ),
+  
+  time_UI("timer"),
+  
   fluidRow(
-    column(width = 6,
+    column(width = 12,
            h4("Click info"),
            verbatimTextOutput("click_info")
     ),
@@ -46,13 +52,21 @@ ui <- fluidPage(
   )
 )
 
-server <- function(input, output) {
+server <- function(input, output, session) {
+  
+  
+  start <- callModule(module = welcome, id = "welcome")
+  timer <- callModule(module = time, id = "timer", start = start)
   
   # store the list of clicked polygons in a vector
   clickedpolys <- shiny::reactiveValues( ids = vector() )
   # index of next country for user to click
   country_id_next <- 1
   clicked_country <- ""
+  num_to_do <- 3 #num countries to locate
+  
+  shareurl <- "https://twitter.com/intent/tweet?text=I%20located%2010%20%20countries%20in%20{time}%20seconds%20!%20And%20you%20?%20%23rstats%20%23rspatial%20Play%20here:&url=https://dreamrs.shinyapps.io/memory-hex"
+  
   
   output$plot1 <- renderPlot({
     
@@ -139,6 +153,52 @@ server <- function(input, output) {
     
   })
   
+  
+  #ending the game, copied from 
+  #https://github.com/dreamRs/memory-hex/blob/a11625a149027daa46a1fdf764e08da4cb3b4f08/server.R
+  observe({
+    # allfound <- all_found(results_mods_parse$all)
+    # if (isTRUE(allfound)) {
+    # my first effort stop when set num countries reached
+    
+    if (length(clickedpolys$ids) >= num_to_do) {      
+      showModal(modalDialog(
+        tags$div(
+          style = "text-align: center;",
+          tags$h2(
+            tags$span(icon("trophy"), style = "color: #F7E32F;"),
+            "Well done !",
+            tags$span(icon("trophy"), style = "color: #F7E32F;")
+          ),
+          tags$h4(paste("You located",num_to_do,"countries in")),
+          tags$h1(isolate(timer()), "seconds!"),
+          tags$br(), tags$br(),
+          tags$a(
+            href = glue(shareurl, time = isolate(timer())),
+            icon("twitter"), "Tweet your score !", 
+            class = "btn btn-info btn-lg"
+          ),
+          tags$br(), tags$br(),
+          
+          tags$p("Check out what else we are up to at ",
+                 tags$a(href = "https://afrimapr.github.io/afrimapr.website/", "afrimapr")),
+          
+          tags$br(), tags$br(),
+          actionButton(
+            inputId = "reload",
+            label = "Play again !",
+            style = "width: 100%;"
+          )
+        ),
+        footer = NULL,
+        easyClose = FALSE
+      ))
+    }
+  })  
+
+  observeEvent(input$reload, {
+    session$reload()
+  }, ignoreInit = TRUE)  
 
 }
 
