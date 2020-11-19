@@ -10,8 +10,8 @@ welcome_UI <- function(id) {
     ),
     tags$div(
       style = "text-align: center;",
-      tags$p("Click on the countries as their names come up."),
-      tags$p("How quickly can you do them all ?"),
+      tags$p("How quickly can you locate 5 countries in Africa ?"),
+      tags$p("Click on thems as their names come up."),
       tags$p("Incorrect clicks are not penalised, only time matters."),
       tags$p("Click button below to play !")
     ), 

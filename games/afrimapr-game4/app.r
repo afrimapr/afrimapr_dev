@@ -1,4 +1,4 @@
-#game3-from-scratch-static-map.r
+#game4.r
 
 #try an alternative approach where plot a static map not leaflet
 #and detect coords to find which polygons selected
@@ -11,14 +11,17 @@
 #starting from a more basic example
 #https://shiny.rstudio.com/gallery/plot-interaction-selecting-points.html
 
-#TODO i think calculation is triggered twice when mouse clicked
-#(possibly because updating the map retriggers click)
 
 #working that list of countries built up from clicks
 
 # TODO
 # add random generation of country names
 # fix 'play again' button
+# check why country test seems to be triggered twice on each click (possibly because updating the map retriggers click)
+# sort sf longlat warning
+# change url in the tweetremotes::install_github('afrimapr/afrilearndata')
+
+
 
 
 library(shiny)
@@ -27,8 +30,8 @@ library(afrilearndata)
 library(sf)
 library(glue) #?may be needed by time module
 
-source("modules/time-module.R")
-source("modules/welcome-module.R")
+source("modules/time-module.r")
+source("modules/welcome-module.r")
 
 
 ui <- fluidPage(
@@ -61,11 +64,13 @@ server <- function(input, output, session) {
   # store the list of clicked polygons in a vector
   clickedpolys <- shiny::reactiveValues( ids = vector() )
   # index of next country for user to click
-  country_id_next <- 1
-  clicked_country <- ""
-  num_to_do <- 3 #num countries to locate
+  #country_id_next <- 1
+  country_id_next <<- sample(1:nrow(sfafricountries), 1)
   
-  shareurl <- "https://twitter.com/intent/tweet?text=I%20located%2010%20%20countries%20in%20{time}%20seconds%20!%20And%20you%20?%20%23rstats%20%23rspatial%20Play%20here:&url=https://dreamrs.shinyapps.io/memory-hex"
+  clicked_country <- ""
+  num_to_do <- 5 #num countries to locate
+  
+  shareurl <- "https://twitter.com/intent/tweet?text=I%20located%2010%20%20countries%20in%20{time}%20seconds%20!%20And%20you%20?%20%23rstats%20%23rspatial%20Play%20here:&url=https://afrimapr.github.io/afrimapr.website/"
   
   
   output$plot1 <- renderPlot({
@@ -121,7 +126,8 @@ server <- function(input, output, session) {
     #   } else {      
       
       sfpoint <- st_sfc(st_point(c(input$plot1_click$x, input$plot1_click$y)))
-      st_crs(sfpoint) <- 4326
+      #st_crs(sfpoint) <- 4326
+      st_crs(sfpoint) <- st_crs(sfafricountries)      
 
       #find which polygon clicked on
       poly_index <- st_within(sfpoint,sfafricountries)[[1]]
@@ -143,6 +149,10 @@ server <- function(input, output, session) {
         # change next country to choose
         # later make this random, for now increment
         country_id_next <<- country_id_next + 1
+        # find country indices not clicked yet
+        unclicked <- which(! 1:nrow(sfafricountries) %in% clickedpolys$ids)
+        # randomly sample from above
+        country_id_next <<- sample(unclicked, 1)
       }
     }
 
