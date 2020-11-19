@@ -1,0 +1,241 @@
+---
+title: "senegal_cous"
+output: html_document
+---
+
+A file of 130 facilities from COUS with facility capacities has no coordinates, just names.
+
+Can it be joined to data with coordinates ?
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(afrihealthsites)
+library(knitr) #for kable
+library(dplyr)
+library(ggplot2)
+library(readr)
+
+```
+
+
+```{r, eval=TRUE, warning=FALSE}
+
+cous_file <- "C:\\Dropbox\\_afrimapr\\healthsites\\COUS-structures-2020-09-04-09-35-21am - Inventory.csv"
+
+# test reading in file
+dfcous <- readr::read_csv(cous_file)
+
+# remove first row of just NAs
+dfcous <- dfcous[-1,]
+
+names(dfcous)
+
+#  [1] "Nom"                                       "Categorie"                                
+#  [3] "Type"                                      "Adresse"                                  
+#  [5] "Access"                                    "Généralistes"                             
+#  [7] "Spécialistes"                              "Chirurgiens généralistes"                 
+#  [9] "Neurochirurgiens"                          "Urologues"                                
+# [11] "Orthopédistes traumatologues"              "Gynécos obstétriciens"                    
+# [13] "ORL"                                       "Ophtalmologues"                           
+# [15] "Maxillo faciales"                          "Pédiatres"                                
+# [17] "Cardiologues"                              "Infectiologues"                           
+# [19] "Radiologues"                               "Urgentistes"                              
+# [21] "Biologistes"                               "Chirurgiens dentistes"                    
+# [23] "Pharmaciens"                               "Spécialistes en biologie"                 
+# [25] "Infirmiers d’état"                         "Sage femmes d’état"                       
+# [27] "Assistants infirmiers et aides infirmiers" "Laboratoire"                              
+# [29] "Néphrologie"                               "Techn- Appareillage Orthopédique"         
+# [31] "Radiologie"                                "Kinésithérapie"                           
+# [33] "Anesthésie et réanimation"                 "Maintenance"                              
+# [35] "Ophtalmologie"                             "Odontologie"                              
+# [37] "lits en sau"                               "Lits en Médecine"                         
+# [39] "Lits en Chirurgie"                         "Lits en Pédiatrie"                        
+# [41] "Lits en Réanimation"                       "Amb. fonctionnelles médicalisées"         
+# [43] "Amb. fonctionnelles non médicalisées"      "Salles d’opérations fonctionnelles"       
+# [45] "Salles d’opérations non fonctionnelles"    "Motos fonctionnelles"                     
+# [47] "Motos non fonctionnelles"                  "Voit. de liaisons fonctionnelles"         
+# [49] "Voit. de liaisons non fonctionnelles"      "Voit. équipées de chambres froides"       
+# [51] "Vedettes amb. fonctionnelles"              "Vedettes d'amb. non fonctionnelles"       
+# [53] "Vedettes de liaison fonctionnelles"        "Vedettes de liaison non fonctionnelles"   
+# [55] "Pirogues amb. fonctionnelles"              "Pirogues amb. non fonctionnelles"         
+# [57] "Pirogues de liaison fonctionnelles"        "Pirogues de liaison non fonctionnelles"   
+# [59] "Hélicoptères médicalisées"                 "Radiographie standard"                    
+# [61] "Radiographie numérique"                    "Scanner"                                  
+# [63] "IRM"                                       "Echo Doppler"                             
+# [65] "Ostéodensitométrie"                        "Mammographie"                             
+# [67] "Radio dentaire"                            "Appareillage Orthopédique"                
+# [69] "Groupes électrogènes fonctionnels"         "Banque de sang fonctionnelle"             
+# [71] "Banque de sang non fonctionnelle"          "Magasins de stockage (surface)"           
+# [73] "Morgue (nombre de tiroirs)"                "Chambres froides"                         
+# [75] "Biochimie"                                 "Bacteriologie"                            
+# [77] "Serologie"                                 "Hermatologie"                             
+# [79] "Parasitologie"                             "Cytologie"                                
+# [81] "Anatomie_pathologie"                       "huminologie"   
+
+
+
+```
+
+
+```{r who_hs_cous, eval=FALSE, warning=FALSE}
+
+# read in who & healthsites data to see how similar the facility names are to the COUS data
+
+# who data has 112 facilities if exclude poste de sante
+sfwho_sen <- afrihealthsites("senegal", datasource='who')
+#unique(sfwho_sen$`Facility type`)
+# [1] "Centre Hospitalier Universitaire" "Poste de Santé"                   "Centre Hospitalier National"   
+# [4] "Health Centre"                    "Hôpital"                          "Hôpital Général"               
+# [7] "Hôpital Régional"                
+sfwho_sen <- dplyr::filter(sfwho_sen, `Facility type` != "Poste de Santé")
+
+# healthsites data has 197 if just include hospitals
+sfhs_sen <- afrihealthsites("senegal", datasource='healthsites')
+sfhs_sen <- dplyr::filter(sfhs_sen, amenity == 'hospital')
+
+
+# so want to compare
+
+dfcous[["Nom"]]
+  # [2] "Centre  Hospitalier Abasse Ndao"                           
+  # [3] "Hopital General de Grand yoff"                             
+  # [4] "Centre de sante Ouakam"      
+sfwho_sen[["Facility name"]]
+  # [1] "Abass Ndao Centre Hospitalier Universitaire" "Albert Royer Centre Hospitalier National"   
+  # [3] "Aristide Le Dantec Centre Hospitalier"       "Colobane Centre de Santé"   
+sfhs_sen[["name"]]
+  # [1] "Kossanto Health Post"                                                     
+  # [2] "Maternité"                                                                
+  # [3] "Poste De Sante Silmang"                                                   
+  # [5] "SOS Cardio"                                                               
+  # [6] "District sanitaire de Rosso/Sénégal"                                      
+  # [7] "Maternité Soeurs du Sacré Coeur"    
+  # [10] "Hôpital de la Paix"                                                       
+
+# characteristics of facility names in different databases
+#Cous       - no accents, facility type comes first
+#who/kemri  - accents, facility type comes last
+#healthsites - mixture, sometimes accents, sometimes not, sometimes English, sometimes missing
+
+#match returns a vector of the positions of (first) matches of its first argument in its second.
+
+# initial match attempts return 0 joins !!
+sum(match(dfcous$Nom, sfhs_sen$name), na.rm=TRUE)
+#0
+
+sum(match(dfcous$Nom, sfwho_sen[["Facility name"]]), na.rm=TRUE)
+#0
+
+#for testing just have the Nom & Categorie columns
+dfcous2 <- dfcous[,1:2]
+
+#use inner join so easier to keep track of how many join successes
+
+#dplyr join - also 0 joins
+djoined <- sfwho_sen %>%
+  dplyr::inner_join(dfcous, by = c("Facility name" = "Nom"))
+
+# try fuzzyjoin - also initially 0 joins
+fjoined <- sfwho_sen %>%
+  fuzzyjoin::stringdist_inner_join(dfcous, by = c("Facility name" = "Nom"), max_dist = 1)
+
+# options to include chances of joining
+# remove facility type part of names
+# tolower
+# remove accents
+
+dfcous2 <- dfcous2 %>% 
+           mutate( nmlower = stringi::stri_trans_general(Nom, "Latin-ASCII")) %>% 
+           mutate( nmlower = tolower( nmlower ) )
+
+sfwho_sen2 <- sfwho_sen %>% 
+           mutate( nmlower = stringi::stri_trans_general(`Facility name`, "Latin-ASCII")) %>% 
+           mutate( nmlower = tolower( nmlower ) )
+
+
+#sfwho_sen$jname <- str_remove_all(sfwho_sen$jname, "Centre Hospitalier")
+
+#rem_string <- "Centre Hospitalier | Centre de Santé | Hôpital Général |  Universitaire"
+#in who data 2 spaces
+#rem_string <- "Centre  Hospitalier"
+# toremove <- c("Centre Hospitalier",
+#               "Centre  Hospitalier",
+#               "Centre de Santé", 
+#               "Hôpital Général",
+#               "Universitaire")
+
+
+toremove <- c("centre", 
+              "hospitalier",
+              "de", 
+              "sante",
+              "hopital",
+              "general",
+              "militaire",
+              "national",
+              "universitaire",
+              "d'enfant",
+              "regional") 
+
+rem_string <- paste(toremove, collapse="|")
+
+dfcous2 <- dfcous2 %>% 
+           mutate( jname = str_trim( str_remove_all(nmlower, rem_string))) 
+
+
+sfwho_sen2 <- sfwho_sen2 %>% 
+             mutate( jname = str_trim( str_remove_all(nmlower, rem_string)))
+
+#now try to join using the jname column
+
+#dplyr join - 76 joins so far
+djoined <- sfwho_sen2 %>%
+  dplyr::inner_join(dfcous2, by = "jname")
+
+#anti_join to see which are failing
+dfailed <- sfwho_sen2 %>%
+  dplyr::anti_join(dfcous2, by = "jname")
+
+#e.g.s of fails cous, who
+#abasse ndao, 	abass ndao 
+#ngor-almadies, ngor
+
+
+# try fuzzyjoin - Error in names(agr) <- `*vtmp*` : 'names' attribute [11] must be the same length as the vector [10]
+# may be a problem with sf geometry column ?
+# same error when reverse args
+# fjoined <- dfcous2 %>%
+#   fuzzyjoin::stringdist_inner_join(sfwho_sen2, by = "jname", max_dist = 1)
+
+# yes st_drop_geometry fixed it, now joins 84 at max_dist=1
+#joins 96 at max_dist=2, but duplicates, 1 looks better
+#fjoined <- st_set_geometry(sfwho_sen2, NULL) %>%
+#fjoined <- st_drop_geometry(sfwho_sen2) %>%
+#aha! this works to keep the geom column there
+fjoined <- as.data.frame(sfwho_sen2) %>%  
+  fuzzyjoin::stringdist_inner_join(dfcous2, by = "jname", max_dist = 1)
+
+#anti_join to see which are failing - 39 failures
+ffailed <- st_drop_geometry(sfwho_sen2) %>%
+  fuzzyjoin::stringdist_anti_join(dfcous2, by = "jname", max_dist = 1)
+
+#compare jnames in joined file
+fjointest <- fjoined[,c("jname.x","jname.y")]
+
+
+#have a go at mapviewing the joined file
+#reset geometry column (which I unset to get fuzzyjoin to work)
+sfjoined <- st_set_geometry(fjoined, "geometry")
+mapview::mapview(sfjoined,
+                 zcol = "Facility type",
+                 label = paste("COUS:",sfjoined[["Facility name"]]," WHO:",sfjoined[["Nom"]]))
+
+#TODO set mapview to show atrribute table
+
+
+```
+
+
+
+

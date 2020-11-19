@@ -10,6 +10,10 @@ output: html_document
 https://data.humdata.org/organization/hera-humanitarian-emergency-response-africa?
 
 
+searched for this on github to see if anyone has solved these issues already, but seemingly not
+subnational_covid19_hera
+
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
@@ -26,11 +30,73 @@ folder <- r"(C:\Dropbox\_afrimapr\data\covid-hera-hdx\)"
 ```
 
 
-```{r, hera-togo, eval=TRUE, warning=FALSE}
+```{r, hera-tgo, eval=TRUE, warning=FALSE}
 
 dftgo <- readr::read_csv2(r"(C:\Dropbox\_afrimapr\data\covid-hera-hdx\tgo_subnational_covid19_hera.csv)")
 
+head(dftgo)
+
+#      ID DATE  ISO_3 PAYS  ID_PAYS REGION ID_REGION CONTAMINES DECES GUERIS CONTAMINES_FEMME
+#   <dbl> <chr> <chr> <chr>   <dbl> <chr>      <dbl> <chr>      <chr> <chr>  <chr>           
+# 1     1 06/0~ TGO   Togo        3 Centre        22 0          0     0      0               
+# 2     2 06/0~ TGO   Togo        3 Kara          21 0          0     0      0               
+# 3     3 06/0~ TGO   Togo        3 Marit~        24 1          0     0      1 
+
 #REGION column contains region names
+
+unique(dftgo$REGION)
+
+# "Centre"       "Kara"         "Maritime"     "Plateaux"     "Savanes"      "Non spécifié"
+
+sftgoadm1 <- afriadmin::afriadmin('tgo',level=1)
+
+unique(sftgoadm1$shapeName)
+
+#"Savanes Region"  "Kara Region"     "Centrale Region" "Plateaux Region" "Maritime Region"
+
+#so to join will need to remove Region from geoboundaries & change some names eg centre v centrale
+
+```
+
+
+```{r, hera-bfa, eval=TRUE, warning=FALSE}
+
+dfbfa <- readr::read_csv2(r"(C:\Dropbox\_afrimapr\data\covid-hera-hdx\bfa_subnational_covid19_hera.csv)")
+
+head(dfbfa)
+#      ID DATE  ISO_3 PAYS  ID_PAYS REGION ID_REGION CONTAMINES DECES GUERIS CONTAMINES_FEMME
+#   <dbl> <chr> <chr> <chr>   <dbl> <chr>      <dbl> <chr>      <chr> <chr>  <chr>           
+# 1     1 09/0~ BFA   Burk~      16 Boucl~       208 0          0     0      0  
+
+unique(dfbfa$REGION)
+
+#  [1] "Boucle du Mouhoun" "Cascades"          "Centre"            "Centre-Est"        "Centre-Nord"    
+#  [6] "Centre-Ouest"      "Centre-Sud"        "Est"               "Haut-Bassins"      "Nord"           
+# [11] "Plateau-Central"   "Sahel"             "Sud-Ouest"         "Non spécifié"     
+
+sfbfaadm1 <- afriadmin::afriadmin('bfa',level=1)
+
+unique(sfbfaadm1$shapeName)
+
+#  [1] "Centre"            "Boucle du Mouhoun" "Cascades"          "Centre-Est"        "Centre-Nord"    
+#  [6] "Centre-Ouest"      "Centre-Sud"        "Est"               "Hauts-Bassins"     "Nord"           
+# [11] "Plateau Central"   "Sahel"             "Sud-Ouest"  
+
+# cool these match better than togo, except for Hauts-Bassins != Haut-Bassins
+# Plateau-Central != Plateau Central
+# good case studies of things to match
+
+# explore dfbfa
+
+length(unique(dfbfa$DATE))
+
+#216
+
+
+
 
 
 ```
+
+Can I also get to the data through rhdx ?
+

@@ -107,13 +107,23 @@ sfmw_alg <- opq(timeout=900, bbox = bbalgeria) %>%
 plot(sf::st_geometry(sfmw$osm_lines))
 
 # try to download all motorways for Africa
-# but Africa bbox looks dodgy at the moment
+# but Africa bbox looks like it misses some of W
+# failed a few times but did eventually get there 
+# lines have 10458 rows & 180 columns so not really good teaching data !
 sfmw <- opq(timeout=900, bbox = bbafrica) %>%  
     add_osm_feature(key = 'highway', value = 'motorway')  %>%
     #add_osm_feature(key = 'highway', value = 'trunk')  %>% 
     #add_osm_feature(key = 'highway', value = 'primary')  %>%  
     osmdata_sf()
 plot(sf::st_geometry(sfmw$osm_lines))
+
+# different errors each time
+# Request failed [504]. Retrying in 3.5 seconds...
+# Error in read_xml.raw(charToRaw(enc2utf8(x)), "UTF-8", ..., as_html = as_html,  : 
+#   Space required after the Public Identifier [65]
+
+# Error in read_xml.raw(charToRaw(enc2utf8(x)), "UTF-8", ..., as_html = as_html,  : 
+#   Opening and ending tag mismatch: hr line 5 and body [76]
 
 # trimming data by polygon bbox
 # bb <- getbb ('london uk', format_out = 'polygon')
@@ -134,5 +144,91 @@ plot(sf::st_geometry(sfmw$osm_lines))
 # road types highways and primary roads
 # gp_rtp 1 & 2
 
+```{r, africa-roads-grip, eval=TRUE, warning=FALSE}
+
+filepath <- r"(C:\Dropbox\_afrimapr\road-data\GRIP4_Region3_vector_shp\GRIP4_Region3.shp)"
+  
+sfroads <- sf::st_read(filepath)  #>1 million rows !
+
+sfhways <- dplyr::filter(sfroads, GP_RTP==1) #5069 rows mostly around edges
+
+#trying kmz of transcontinental network
+filepath <- r"(C:\Dropbox\_afrimapr\road-data\Trans-African Highway Network.kml)"
+  
+sfcontinental <- sf::st_read(filepath)
 
 
+```
+
+
+
+```{r, africa-osm-airports, eval=TRUE, warning=FALSE}
+
+# aeroway=aerodrome
+
+airp <- opq(timeout=900, bbox = bbafrica) %>%  
+    add_osm_feature(key = 'aeroway', value = 'aerodrome')  %>%
+    osmdata_sf()
+
+#choose nodes because interested in points 33677 points
+plot(sf::st_geometry(airp$osm_points))
+
+# does show that there is problem with the africa bbox, misses parts of w & south
+# and the nodes are lots of points per airport at least in some cases
+
+sfairp <- airp$osm_points %>% 
+          dplyr::filter(!is.na(name)) %>% 
+          dplyr::filter(!(is.na(iata) | is.na(icao))) %>% 
+          dplyr::filter(!is.na(aeroway))
+          
+#down to 1401 with a name (lots of dodgy encoding)
+#1467 not na aeroway
+#1398 both
+#166 columns icao & iata seem to be codes that are in a subset down to 166
+
+#still plenty dodgy encoding e.g. Ù…Ø·Ø§Ø± Ø§Ù„ÙˆØ¬Ù‡ Ø§Ù„Ù…Ø­Ù„ÙŠ
+
+mapview::mapview(sfairp, zcol='name', legend=FALSE)
+
+# test for rwanda
+bbrwanda <- getbb("rwanda", featuretype = 'country')
+airp_rwa <- opq(timeout=900, bbox = bbrwanda) %>%  
+    add_osm_feature(key = 'aeroway', value = 'aerodrome')  %>%
+    osmdata_sf()
+
+sfairp_rwa <- airp_rwa$osm_points
+
+#458 rows
+
+# only few have anything in name field
+# these cut to 7 but no Kigali 
+# maybe I could edit in OSM ??
+sfairp_rwa2 <- dplyr::filter(sfairp_rwa, !is.na(name))
+sfairp_rwa2 <- dplyr::filter(sfairp_rwa, !is.na(aeroway))
+
+mapview::mapview(sfairp_rwa)
+mapview::mapview(sfairp_rwa2)
+
+```
+
+
+```{r, africa-railways, eval=TRUE, warning=FALSE}
+
+
+bbafrica <- getbb("africa", featuretype = 'continent')
+
+
+# try to download all motorways for Africa
+# but Africa bbox looks like it misses some of W
+# failed a few times but did eventually get there 
+# lines have 10458 rows & 180 columns so not really good teaching data !
+sfrw <- opq(timeout=900, bbox = bbafrica) %>%  
+    add_osm_feature(key = 'railway', value = 'rail')  %>%
+    osmdata_sf()
+
+plot(sf::st_geometry(sfrw$osm_lines))
+
+
+
+
+```
