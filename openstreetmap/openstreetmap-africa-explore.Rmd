@@ -214,7 +214,6 @@ mapview::mapview(sfairp_rwa2)
 
 ```{r, africa-railways, eval=TRUE, warning=FALSE}
 
-
 bbafrica <- getbb("africa", featuretype = 'continent')
 
 
@@ -229,6 +228,34 @@ sfrw <- opq(timeout=900, bbox = bbafrica) %>%
 plot(sf::st_geometry(sfrw$osm_lines))
 
 
+```
+
+```{r, drc-health-catchments, eval=TRUE, warning=FALSE}
+
+bbdrc <- getbb("democratic republic of the congo", featuretype = 'country')
+
+
+osmdrc <- opq(timeout=900, bbox = bbdrc) %>%  
+    add_osm_feature(key = 'boundary', value = 'health')  %>%
+    osmdata_sf()
+
+
+plot(sf::st_geometry(osmdrc$osm_lines))
+
+sfdrcpolys <- sfdrc$osm_polygons
+sfdrclines <- sfdrc$osm_lines
+
+#there are just 46 v small polys
+#lines do seem to make up a clear tesselation of health catchments
+#but they are not labelled as each area
+#promising
+
+mapview::mapview(sfdrcpolys)
+mapview::mapview(sfdrclines)
+
+
 
 
 ```
+
+
