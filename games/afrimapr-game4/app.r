@@ -197,27 +197,30 @@ server <- function(input, output, session) {
     
     if (length(clickedpolys$ids) >= num_to_do) {      
       showModal(modalDialog(
+      #showModal(modalDialog(size="s",        
         tags$div(
           style = "text-align: center;",
-          tags$h2(
-            tags$span(icon("trophy"), style = "color: #F7E32F;"),
-            "Well done !",
-            tags$span(icon("trophy"), style = "color: #F7E32F;")
-          ),
-          tags$h4(paste("You located",num_to_do,"countries in")),
-          tags$h1(isolate(timer()), "seconds!"),
-          tags$br(), tags$br(),
+          # tags$h2(
+          #   tags$span(icon("trophy"), style = "color: #F7E32F;"),
+          #   "Well done !",
+          #   tags$span(icon("trophy"), style = "color: #F7E32F;")
+          # ),
+          # tags$h4(paste("You located",num_to_do,"countries in")),
+          # tags$h1(isolate(timer()), "seconds!"),
+          tags$h5(paste("You located",num_to_do,"countries in")),
+          tags$h4(isolate(timer()), "seconds!"),
+          #tags$br(), tags$br(),
           tags$a(
             href = glue(shareurl, time = isolate(timer())),
             icon("twitter"), "Tweet your score !", 
             class = "btn btn-info btn-lg"
           ),
-          tags$br(), tags$br(),
+          #tags$br(), tags$br(),
           
           tags$p("Check out what else we are up to at ",
                  tags$a(href = "https://afrimapr.github.io/afrimapr.website/", "afrimapr")),
           
-          tags$br(), tags$br(),
+          #tags$br(), tags$br(),
           actionButton(
             inputId = "reload",
             label = "Play again !",
@@ -225,6 +228,7 @@ server <- function(input, output, session) {
           )
         ),
         footer = NULL,
+        #easyClose = TRUE
         easyClose = FALSE
       ))
     }
