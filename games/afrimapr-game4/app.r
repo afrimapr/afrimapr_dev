@@ -15,8 +15,6 @@
 #working that list of countries built up from clicks
 
 # TODO
-# add random generation of country names
-# fix 'play again' button
 # check why country test seems to be triggered twice on each click (possibly because updating the map retriggers click)
 # sort sf longlat warning
 # change url in the tweetremotes::install_github('afrimapr/afrilearndata')
@@ -65,20 +63,32 @@ server <- function(input, output, session) {
   clickedpolys <- shiny::reactiveValues( ids = vector() )
   # index of next country for user to click
   #country_id_next <- 1
-  country_id_next <<- sample(1:nrow(sfafricountries), 1)
+  country_id_next <<- sample(1:nrow(africountries), 1)
   
   clicked_country <- ""
   num_to_do <- 5 #num countries to locate
   
   shareurl <- "https://twitter.com/intent/tweet?text=I%20located%2010%20%20countries%20in%20{time}%20seconds%20!%20And%20you%20?%20%23rstats%20%23rspatial%20Play%20here:&url=https://afrimapr.github.io/afrimapr.website/"
   
-  
+  #get coords of country centroids for name plotting
+  sfcentroids <- st_geometry(st_centroid(africountries))
+  #didn't work for multiple countries : sfcentroids[clickedpolys][1] & [2] for x & y
+  centroid_coords <- as(sfcentroids,"Spatial")@coords
+  centroid_x <- centroid_coords[,1] 
+  centroid_y <- centroid_coords[,2] 
+  #access by centroid_x[clickedpolys]
+   
   output$plot1 <- renderPlot({
     
-    #ggplot(sfafricountries) + geom_sf()
+    #todo allow alternative language selection
+    country_name <- africountries$name[country_id_next]
     
-    plot(st_geometry(sfafricountries))
+    #ggplot(africountries) + geom_sf()
     
+    #plot(st_geometry(africountries))
+
+    plot(st_geometry(africountries), main=paste("click", country_name))
+        
     # need to react to click
     # but want calculation to be done first
     # add clicked countries
@@ -87,7 +97,21 @@ server <- function(input, output, session) {
       # is "silent". See more at: ?req
       req( clickedpolys$ids )
       } else {
-      plot(st_geometry(sfafricountries)[clickedpolys$ids], add=TRUE, col='red')    
+        
+      #Without this if, before any polys are even clicked, get following error
+      #Error in text.default: zero-length 'labels' specified
+      #suggests that it gets to here before any clicks
+      if (length(clickedpolys$ids)>0)
+      {
+        plot(st_geometry(africountries)[clickedpolys$ids], add=TRUE, col='darkorange') 
+        
+        #cat("here",clickedpolys$ids)  
+        
+        text(centroid_x[clickedpolys$ids],
+             centroid_y[clickedpolys$ids],
+             labels=africountries$name[clickedpolys$ids], col = 'black')
+      }
+ 
     }
     
     # if( !is.null( input$plot1_click ) ){
@@ -96,12 +120,12 @@ server <- function(input, output, session) {
     #   st_crs(sfpoint) <- 4326
     #   
     #   #find which polygon clicked on
-    #   poly_index <- st_within(sfpoint,sfafricountries)[[1]]
+    #   poly_index <- st_within(sfpoint,africountries)[[1]]
     #   #get value out of list
     #   poly_index <- poly_index[[1]]     
     # 
     #   # add clicked countries
-    #   plot(st_geometry(sfafricountries)[poly_index], add=TRUE, col='red')
+    #   plot(st_geometry(africountries)[poly_index], add=TRUE, col='red')
     #   
     #   #problem is that this seems to trigger this renderPlot again with NULL click
     #   #so the red polygon gets covered
@@ -127,14 +151,14 @@ server <- function(input, output, session) {
       
       sfpoint <- st_sfc(st_point(c(input$plot1_click$x, input$plot1_click$y)))
       #st_crs(sfpoint) <- 4326
-      st_crs(sfpoint) <- st_crs(sfafricountries)      
+      st_crs(sfpoint) <- st_crs(africountries)      
 
       #find which polygon clicked on
-      poly_index <- st_within(sfpoint,sfafricountries)[[1]]
+      poly_index <- st_within(sfpoint,africountries)[[1]]
       #get value out of list
       poly_index <- poly_index[[1]]
       #which country name at that index
-      clicked_country <- sfafricountries$name[poly_index]
+      clicked_country <- africountries$name[poly_index]
 
       # store clicked country if it hasn't been clicked before
       #if ( ! (poly_index %in% clickedpolys$ids))
@@ -150,14 +174,14 @@ server <- function(input, output, session) {
         # later make this random, for now increment
         country_id_next <<- country_id_next + 1
         # find country indices not clicked yet
-        unclicked <- which(! 1:nrow(sfafricountries) %in% clickedpolys$ids)
+        unclicked <- which(! 1:nrow(africountries) %in% clickedpolys$ids)
         # randomly sample from above
         country_id_next <<- sample(unclicked, 1)
       }
     }
 
     #c(poly_index, clicked_country)
-    cat("target:",sfafricountries$name[country_id_next], 
+    cat("target:",africountries$name[country_id_next], 
         " clicked:", clicked_country,
         " all clicked:", clickedpolys$ids)  
     
