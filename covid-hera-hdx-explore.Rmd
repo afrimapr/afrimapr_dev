@@ -61,12 +61,23 @@ unique(sftgoadm1$shapeName)
 
 ```{r, hera-bfa, eval=TRUE, warning=FALSE}
 
-dfbfa <- readr::read_csv2(r"(C:\Dropbox\_afrimapr\data\covid-hera-hdx\bfa_subnational_covid19_hera.csv)")
+#dfbfaold <- readr::read_csv2(r"(C:\Dropbox\_afrimapr\data\covid-hera-hdx\bfa_subnational_covid19_hera.csv)")
+dfbfa <- readr::read_csv2(r"(C:\Dropbox\_afrimapr\data\covid-hera-hdx\bfa_subnational_covid19_hera.csv)",
+                          col_types='iccciciiiiiiicc')
+#D for date didn't work on the way the date is formatted
+
+library(lubridate)
+
+dfbfa$date <- lubridate::dmy(dfbfa$DATE)
 
 head(dfbfa)
 #      ID DATE  ISO_3 PAYS  ID_PAYS REGION ID_REGION CONTAMINES DECES GUERIS CONTAMINES_FEMME
 #   <dbl> <chr> <chr> <chr>   <dbl> <chr>      <dbl> <chr>      <chr> <chr>  <chr>           
 # 1     1 09/0~ BFA   Burk~      16 Boucl~       208 0          0     0      0  
+
+#not needed once column types specified in read_csv
+#dfbfa$CONTAMINES <- as.numeric(dfbfa$CONTAMINES)
+
 
 unique(dfbfa$REGION)
 
@@ -87,13 +98,44 @@ unique(sfbfaadm1$shapeName)
 # good case studies of things to match
 
 # explore dfbfa
-
 length(unique(dfbfa$DATE))
-
 #216
 
+#I wonder if fuzzyjoin works to join the data to the admin areas map ?
+library(fuzzyjoin)
 
+# cool the antijoin gets no results
+# seems to suggest the inner join will catch all
 
+fuzzyjoin::stringdist_anti_join(sfbfaadm1,dfbfa, by=c(shapeName = 'REGION')) 
+#Simple feature collection with 0 features and 5 fields
+
+sf1 <- fuzzyjoin::stringdist_inner_join(sfbfaadm1,dfbfa, by=c(shapeName = 'REGION')) 
+# convert back to sf after fuzzyjoin
+sf1 <- st_as_sf(sf1)
+
+#plotting in tmap, maybe faceting by date, will need to be careful that in date order
+
+# works but with 216 cells can't read date legend to see if in correct order
+# tmap::tm_shape(sf1) +
+#     tm_polygons("CONTAMINES") +
+#     tm_facets(by = "date") #date is the formatted date column
+
+# aggregate by month or week, using lubridate::floor_date
+# first go just sum the results
+# sfmonthly <- sf1 %>% group_by(month=floor_date(date, "month"),
+#                               REGION=REGION) %>%
+#    summarize(CONTAMINES=sum(CONTAMINES))
+
+#calculate weekly totals
+sfweekly <- sf1 %>% group_by(week=floor_date(date, "week"),
+                             REGION=REGION) %>%
+   summarize(CONTAMINES=sum(CONTAMINES,na.rm=TRUE))
+
+#nice weekly facetted map
+tmap::tm_shape(sfweekly) +
+    tm_polygons("CONTAMINES") +
+    tm_facets(by = "week") 
 
 
 ```
