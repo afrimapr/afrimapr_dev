@@ -17,12 +17,14 @@ subnational_covid19_hera
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
-#todo add afriadmin
 
 library(dplyr)
 library(ggplot2)
 library(readr)
 library(sf)
+library(tmap)
+library(lubridate)
+library(afriadmin)
 
 #using new path specification avoiding double slashes
 folder <- r"(C:\Dropbox\_afrimapr\data\covid-hera-hdx\)"
@@ -137,8 +139,136 @@ tmap::tm_shape(sfweekly) +
     tm_polygons("CONTAMINES") +
     tm_facets(by = "week") 
 
+#didn't change title
+#tm_polygons("CONTAMINES", legend.title = "Burkina Faso, CONTAMINES") +
+
+#this heatmap by region of cases, loosely based on Colin Angus work looks good
+#TODO could add rolling 7 day averages to it
+ggplot(sf1, aes(x=date, y=REGION, fill=CONTAMINES))+
+  geom_tile(colour="White")+   
+  theme_classic()+
+  #scale_fill_distiller(palette="Spectral") +
+  #scale_fill_viridis_c()+
+  scale_fill_distiller(palette="YlGnBu", direction=1, na.value='white') +
+  theme(axis.line.y=element_blank())
+
+
+#there is also some admin level2/city data
+# lets see if I can download direct from the url got by right clicking on the link
+url <- "https://data.humdata.org/dataset/4a09b23b-e941-43bf-bede-e35e9a149f3c/resource/14cbbd27-516f-4292-9033-fd9c5fd63f06/download/bfa_cityleveladm2_covid19_hera.csv"
+
+# cool reading directly from the url does work
+dfbfa_city <- readr::read_csv2(url)
+dfbfa_city$date <- lubridate::dmy(dfbfa_city$DATE)
+
+#  [1] "ID"                 "DATE"               "ISO_3"              "PAYS"               "ID_PAYS"           
+#  [6] "REGION"             "ID_REGION"          "VILLES"             "ID_VILLES"          "COMMUNES_TYPE"     
+# [11] "Contaminés"         "Décès"              "Guéris"             "Femme"              "Homme"             
+# [16] "Genre_non spécifié" "Source"   
+
+ggplot(dfbfa_city, aes(x=date, y=VILLES, fill=Contaminés))+
+  geom_tile(colour="White")+
+  theme_classic()+
+  scale_fill_distiller(palette="Spectral") + #(palette="YlGnBu") +
+  theme(axis.line.y=element_blank())
+
 
 ```
 
-Can I also get to the data through rhdx ?
 
+```{r, hera-gha, eval=TRUE, warning=FALSE}
+
+#Ghana
+
+url <- "https://data.humdata.org/dataset/bc3589a6-04bc-4681-b531-7910ec800b4f/resource/1a9d2a9b-36a0-46bc-94df-b1a1d4f62bd5/download/gha_subnational_covid19_hera.csv"
+
+# cool reading directly from the url does work
+dfgha <- readr::read_csv2(url)
+dfgha$date <- lubridate::dmy(dfgha$DATE)
+
+month_breaks <- as.Date(lubridate::parse_date_time(c("2020-04","2020-05","2020-06","2020-07","2020-08","2020-09","2020-10","2020-11"), orders="ym")) 
+
+#this heatmap by region of cases, loosely based on Colin Angus work looks good
+#TODO could add rolling 7 day averages to it
+ggplot(dfgha, aes(x=date, y=REGION, fill=CONTAMINES))+
+  geom_tile(colour="White")+   
+  theme_classic()+
+  #scale_fill_distiller(palette="Spectral") +
+  #scale_fill_viridis_c()+
+  scale_x_date(name="Date", expand=c(0,0), breaks=month_breaks, date_labels = "%B")+ #%B full month name
+  scale_fill_distiller(palette="YlGnBu", direction=1, na.value='white') +
+    labs(title="Timelines for COVID-19 cases in Ghana",
+       #subtitle=paste0(""),
+       caption="Data from @HeraAfrica via @humdata | Plot by @afrimapr")+
+  theme(axis.line.y=element_blank())
+
+#try fuzzjoining to adm1 map
+sfghaadm1 <- afriadmin::afriadmin('gha',level=1)
+
+
+
+```
+
+
+```{r, hera-nga, eval=TRUE, warning=FALSE}
+
+#Nigeria
+url <- "https://data.humdata.org/dataset/f5c35452-d766-468a-a272-4bd82d0a3be0/resource/e8777e62-870d-41a7-952f-97c6ff977706/download/nga_subnational_covid19_hera.csv"
+
+# cool reading directly from the url does work
+dfnga <- readr::read_csv2(url)
+dfnga$date <- lubridate::dmy(dfnga$DATE)
+
+month_breaks <- as.Date(lubridate::parse_date_time(c("2020-04","2020-05","2020-06","2020-07","2020-08","2020-09","2020-10","2020-11"), orders="ym")) 
+
+#this heatmap by region of cases, loosely based on Colin Angus work looks good
+#TODO could add rolling 7 day averages to it
+ggplot(dfnga, aes(x=date, y=REGION, fill=CONTAMINES))+
+  geom_tile(colour="White")+   
+  theme_classic()+
+  #scale_fill_distiller(palette="Spectral") +
+  #scale_fill_viridis_c()+
+  scale_x_date(name="Date", expand=c(0,0), breaks=month_breaks, date_labels = "%B")+ #%B full month name
+  scale_fill_distiller(palette="YlGnBu", direction=1, na.value='white') +
+    labs(title="Timelines for COVID-19 cases in Nigeria",
+       #subtitle=paste0(""),
+       caption="Data from @HeraAfrica via @humdata | Plot by @afrimapr")+
+  theme(axis.line.y=element_blank())
+
+#try fuzzjoining to adm1 map
+sfngaadm1 <- afriadmin::afriadmin('nga',level=1, plot=FALSE)
+
+fuzzyjoin::stringdist_anti_join(sfngaadm1,dfnga, by=c(shapeName = 'REGION')) 
+#Simple feature collection with 0 features and 5 fields
+
+sf1 <- fuzzyjoin::stringdist_inner_join(sfngaadm1,dfnga, by=c(shapeName = 'REGION')) 
+# convert back to sf after fuzzyjoin
+sf1 <- st_as_sf(sf1)
+
+#plotting in tmap, faceting by date
+
+# aggregate by month or week, using lubridate::floor_date
+# first go just sum the results
+#calculate weekly totals
+sfweekly <- sf1 %>% group_by(week=floor_date(date, "week"),
+                             REGION=REGION) %>%
+   summarize(CONTAMINES=sum(CONTAMINES,na.rm=TRUE))
+
+#nice weekly facetted map
+#TODO check whether colour breaks are same as for the heatmap
+tmap::tm_shape(sfweekly) +
+    tm_polygons("CONTAMINES", palette = "YlGnBu") +
+    tm_facets(by = "week") 
+
+#try monthly
+sfmonthly <- sf1 %>% group_by(month=floor_date(date, "month"),
+                             REGION=REGION) %>%
+   summarize(CONTAMINES=sum(CONTAMINES,na.rm=TRUE))
+
+#nice weekly facetted map
+#TODO check whether colour breaks are same as for the heatmap
+tmap::tm_shape(sfmonthly) +
+    tm_polygons("CONTAMINES", palette = "YlGnBu") +
+    tm_facets(by = "month") 
+
+```
