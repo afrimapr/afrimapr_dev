@@ -189,6 +189,7 @@ dfgha$date <- lubridate::dmy(dfgha$DATE)
 month_breaks <- as.Date(lubridate::parse_date_time(c("2020-04","2020-05","2020-06","2020-07","2020-08","2020-09","2020-10","2020-11"), orders="ym")) 
 
 #this heatmap by region of cases, loosely based on Colin Angus work looks good
+#https://github.com/VictimOfMaths/COVID-19/blob/master/Heatmaps/English%20LA%20Heatmaps.R
 #TODO could add rolling 7 day averages to it
 ggplot(dfgha, aes(x=date, y=REGION, fill=CONTAMINES))+
   geom_tile(colour="White")+   
