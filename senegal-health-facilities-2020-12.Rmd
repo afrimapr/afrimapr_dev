@@ -1,10 +1,13 @@
 ---
-title: "senegal"
-output: html_document
+title: "Senegal HOT microgrant analyses"
+#output: html_document
+author: "Andy South @afrimapr"
+date: "`r Sys.Date()`"
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE)
 
 library(afrihealthsites)
 library(knitr) #for kable
@@ -14,13 +17,11 @@ library(ggplot2)
 ```
 
 To compare newly collected data on Senegal health facility locations with that from healthsites.io, WHO. 
-
 Part of HOT microgrant.
-
 November 2020
 
 
-```{r read-data, eval=TRUE, echo=FALSE, warning=FALSE}
+```{r read-data, eval=TRUE}
 
 
 sfsen_who <- afrihealthsites::afrihealthsites('senegal', datasource = 'who', plot = FALSE)
@@ -55,7 +56,7 @@ sfsen_sur <- filter(sfsen_sur, building != "Pharmacy")
 #   unable to translate '<U+FEFF>name' to native encoding
 #TODO fix name of first column
 
-str(sfsen_sur)
+#str(sfsen_sur)
  # $ <U+FEFF>name        : chr  "Centre de santé de Rufisque" 
  # $ building            : chr  "Doctors" "Doctors" "Hospital" "Doctors" ...
  # $ addr:full           : chr  "Rue Savers" 
@@ -79,17 +80,18 @@ str(sfsen_sur)
 
 ```
 
-```{r survey-tmap-beds, eval=TRUE, echo=FALSE, warning=FALSE}
+\pagebreak
+Number of beds per facility in survey data and before.
+
+```{r survey-tmap-beds, eval=TRUE, fig.height=4.5, fig.width=7.5, fig.show='hold'}
 
 library(tmap)
 library(afriadmin)
 
-sfsen_adm0 <- afriadmin('senegal',level=0)
+sfsen_adm0 <- afriadmin('senegal',level=0, plot=FALSE)
 
 #zoom in ?
 #log size scale to show smaller num beds
-
-
 
 tmap::tm_shape(sfsen_adm0) +
     tm_borders("black", lwd = .5) +
@@ -101,12 +103,12 @@ tm_shape(sfsen_sur) +
     tm_symbols(col = "building", alpha=0.8, size = "beds", size.max=420, 
                scale=3, sizes.legend=c(10,100,400), title.col="") +
 tm_add_legend(type="symbol", shape=3, labels = "no bed data", size = 0.5, border.lwd = 0.5, col = "grey") +
-    tm_layout(main.title='Bed data collected 2020') #main.title goes above map
+    tm_layout(main.title='Bed data collected 2020', main.title.size=1) #main.title goes above map
 
 ```
 
 
-```{r osmb4-tmap-beds, eval=TRUE, echo=FALSE, warning=FALSE}
+```{r osmb4-tmap-beds, eval=TRUE, fig.height=4.5, fig.width=7.5, fig.show='hold'}
 
 # healthsites data before
 tmap::tm_shape(sfsen_adm0) +
@@ -119,11 +121,15 @@ tm_shape(sfsen_hs) +
     tm_symbols(col = "amenity", alpha=0.8, size = "beds", size.max=420, 
                scale=3, sizes.legend=c(10,100,400), title.col="") +
 tm_add_legend(type="symbol", shape=3, labels = "no bed data", size = 0.5, border.lwd = 0.5, col = "grey") +
-    tm_layout(main.title='Bed data in OSM before 2020') #main.title goes above map
+    tm_layout(main.title='Bed data in OSM before 2020', main.title.size=1) #main.title goes above map
 
 ```
 
-```{r survey-tmap-beds-zoom, eval=TRUE, echo=FALSE, warning=FALSE}
+
+\pagebreak
+Beds, zoomed in on Dakar & St Louis
+
+```{r survey-tmap-beds-zoom, eval=TRUE, fig.height=4.5, fig.width=7.5, fig.show='hold'}
 
 #bbox for Dhakar
 bbox <- st_bbox(c(xmin = -17.7, xmax = -17.1, ymax = 14.9, ymin = 14.5), crs = st_crs(4326))
@@ -141,11 +147,11 @@ tm_shape(sfsen_sur) +
     tm_symbols(col = "building", alpha=0.8, size = "beds", size.max=420, 
                scale=3, sizes.legend=c(10,100,400), title.col="") +
 tm_add_legend(type="symbol", shape=3, labels = "no bed data", size = 0.5, border.lwd = 0.5, col = "grey") +
-    tm_layout(main.title='Bed data collected 2020') #main.title goes above map
+    tm_layout(main.title='Bed data collected 2020, Dakar & St Louis', main.title.size=1) #main.title goes above map
 
 ```
 
-```{r osmb4-tmap-beds-zoom, eval=TRUE, echo=FALSE, warning=FALSE}
+```{r osmb4-tmap-beds-zoom, eval=TRUE, fig.height=4.5, fig.width=7.5, fig.show='hold'}
 
 # healthsites data before
 tmap::tm_shape(sfsen_adm0, bbox=bbox) +
@@ -158,16 +164,75 @@ tm_shape(sfsen_hs) +
     tm_symbols(col = "amenity", alpha=0.8, size = "beds", size.max=420, 
                scale=3, sizes.legend=c(10,100,400), title.col="") +
 tm_add_legend(type="symbol", shape=3, labels = "no bed data", size = 0.5, border.lwd = 0.5, col = "grey") +
-    tm_layout(main.title='Bed data in OSM before 2020') #main.title goes above map
+    tm_layout(main.title='Bed data in OSM before 2020, Dakar & St Louis', main.title.size=1) #main.title goes above map
+
+```
+
+\pagebreak
+Doctors
+
+```{r survey-tmap-doctors, eval=TRUE, fig.height=4.5, fig.width=7.5, fig.show='hold'}
+
+
+tmap::tm_shape(sfsen_adm0) +
+    tm_borders("black", lwd = .5) +
+    #tm_text("iso_a3", size = "AREA") +
+#add NA points, have to do separately because shapeNA doesn't work for size    
+tm_shape(sfsen_sur[is.na(sfsen_sur[['staff_count:doctors']]),]) +
+  tm_dots(shape=3, size = 0.15, col='grey', border.lwd = 0.2) +    
+tm_shape(sfsen_sur) +
+    tm_symbols(col = "building", alpha=0.8, size = "staff_count:doctors", size.max=120, 
+               scale=3, sizes.legend=c(1,10,100), title.col="") +
+tm_add_legend(type="symbol", shape=3, labels = "no data", size = 0.5, border.lwd = 0.5, col = "grey") +
+    tm_layout(main.title='Doctor number data collected 2020', main.title.size=1) #main.title goes above map
+
+```
+
+Nurses
+
+```{r survey-tmap-nurses, eval=TRUE, fig.height=4.5, fig.width=7.5, fig.show='hold'}
+
+tmap::tm_shape(sfsen_adm0) +
+    tm_borders("black", lwd = .5) +
+    #tm_text("iso_a3", size = "AREA") +
+#add NA points, have to do separately because shapeNA doesn't work for size    
+tm_shape(sfsen_sur[is.na(sfsen_sur[['staff_count:nurses']]),]) +
+  tm_dots(shape=3, size = 0.15, col='grey', border.lwd = 0.2) +    
+tm_shape(sfsen_sur) +
+    tm_symbols(col = "building", alpha=0.8, size = "staff_count:nurses", size.max=300, 
+               scale=3, sizes.legend=c(1,10,100,500), title.col="") +
+tm_add_legend(type="symbol", shape=3, labels = "no data", size = 0.5, border.lwd = 0.5, col = "grey") +
+    tm_layout(main.title='Nurse number data collected 2020', main.title.size=1) #main.title goes above map
+
+```
+
+\pagebreak
+Emergency 
+
+```{r survey-tmap-emergency, eval=TRUE, fig.height=4.5, fig.width=7.5, fig.show='hold'}
+
+#todo in tmap can I use repel to stop points being on top of each other
+
+tmap::tm_shape(sfsen_adm0) +
+    tm_borders("black", lwd = .5) +
+    #tm_text("iso_a3", size = "AREA") +
+#add NA points, have to do separately because shapeNA doesn't work for size    
+# tm_shape(sfsen_sur[is.na(sfsen_sur[['emergency']]),]) +
+#   tm_dots(shape=3, size = 0.15, col='grey', border.lwd = 0.2) +    
+tm_shape(sfsen_sur) +
+    #decide whether to have shape or colour for emergency
+    #todo replace emergency blanks with unknown
+    #tm_symbols(shape = "building", alpha=0.6, col = "emergency", scale=1, title.col="") +
+    tm_symbols(shape = "building", alpha=0.6, col = "emergency", scale=0.7, title.col="Emergency\ncapacity", palette=c("white","blue","red")) + 
+    #tm_add_legend(type="symbol", shape=3, labels = "no data", size = 0.5, border.lwd = 0.5, col = "grey") +  
+    tm_layout(main.title='Emergency capacity data collected 2020', main.title.size=1) #main.title goes above map
 
 ```
 
 
 
 
-
-
-```{r barplot-beds, eval=TRUE, echo=FALSE, warning=FALSE}
+```{r barplot-beds, eval=FALSE, fig.height=5, fig.width=7.5, fig.show='hold'}
 
 #ggplot2::ggplot(sfsen_sur, aes(y = beds, fill = beds)) +
 ggplot2::ggplot(sfsen_sur, aes(x = beds, fill = beds)) +
