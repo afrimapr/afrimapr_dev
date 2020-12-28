@@ -1,0 +1,136 @@
+---
+title: "drc-health-zones"
+output: html_document
+---
+  
+Look at health zone data from red cross on HDX  
+
+https://data.humdata.org/dataset/drc-health-data
+
+Note there are some seemingly older health zones data on HDX too.
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE)
+
+#library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(purrr) # for pluck
+library(sf)
+library(tmap)
+library(lubridate)
+library(afriadmin)
+
+
+#using new path specification avoiding double slashes
+#folder <- r"(C:\Dropbox\_afrimapr\data\covid-hera-hdx\)"
+
+```
+
+
+```{r, drc-zones-rhdx, eval=TRUE, warning=FALSE}
+
+library(rhdx)
+
+set_rhdx_config(hdx_site = "prod")
+get_rhdx_config()
+
+#1st dataset returned is the red cross one I want
+#1st resource is areas - 5849
+#2nd resource is zones - 519
+
+ds1 <- search_datasets("drc-health-data") %>% 
+  pluck(1) #%>% ## select the first dataset
+  
+sfareas <- ds1 %>% 
+           get_resource(1) %>%  
+           read_resource()
+
+sfzones <- ds1 %>% 
+           get_resource(2) %>%  
+           read_resource()
+
+# also there are red cross centre locations
+# Title: DRC Red Cross Health Center Locations
+# Name: drc_red-cross-health-data
+# Date: [2018-11-21T00:00:00
+  
+mapview::mapview(sfareas, zcol='edite_par', label=paste(sfareas$AS,"in",sfareas$ZS))
+
+mapview::mapview(sfzones, zcol='SCE_GEO')
+
+```
+
+```{r, drc-grid3-healthcatchments, eval=TRUE, warning=FALSE}
+
+ds <- search_datasets("drc grid3 catchments") %>% 
+  pluck(1) #%>% ## select the first dataset
+  
+ds %>% get_resources() 
+#1st resource is pdf, 2nd is zip containing shape, but rhdx fails to open
+#i think because zip also contains pdf & gdb
+#Error in CPL_get_layers(dsn, options, do_count) : Open failed.
+#so instead I downloaded and saved
+
+# sfg3catch <- ds %>% 
+#            get_resource(2) %>%  
+#            read_resource()
+
+#fails with gdal error when try to read from github because it just downloads 1 file and can't find the shx
+#urlfolder <- "https://raw.githubusercontent.com/afrimapr/afrimapr_dev/master/data-raw/grid3-drc/"
+urlfolder <- "data-raw/grid3-drc/"
+
+#GRID3_DRC_HL_TN_Health_Zones_V01_Beta
+
+#27 zones
+sfg3zones <- sf::st_read(paste0(urlfolder,"GRID3_DRC_HL_TN_Health_Zones_V01_Beta.shp"))
+#589 areas
+sfg3areas <- sf::st_read(paste0(urlfolder,"GRID3_DRC_HL_TN_Health_Areas_V01_Beta.shp"))
+
+mapview::mapview(sfg3areas, zcol='source', label=paste(sfg3areas$aire_sante,"in",sfg3areas$zone_sante))
+
+```
+
+
+```{r, drc-grid3-facilities, eval=TRUE, warning=FALSE}
+
+ds <- search_datasets("drc grid3 facilities") %>% 
+  pluck(1) #%>% ## select the first dataset
+  
+ds %>% get_resources() 
+
+#1st resource is pdf, 2nd is zip containing shape
+
+#again downloaded because the zip fails rhdx
+
+# 1395 facilities
+sfg3facilities <- sf::st_read(paste0(urlfolder,"GRID3_DRC_HL_TN_Health_Facilities_V01_Beta.shp"))
+
+
+
+```
+
+
+
+```{r, drc-redcross-centres, eval=TRUE, warning=FALSE}
+
+# 22 red cross centre locations
+# Title: DRC Red Cross Health Center Locations
+# Name: drc_red-cross-health-data
+# Date: [2018-11-21T00:00:00
+
+ds <- search_datasets("drc_red-cross-health-data") %>% 
+  pluck(1) #%>% ## select the first dataset
+ 
+ds %>% get_resources() 
+
+sf_rc_centres <- ds %>% 
+           get_resource(1) %>%  
+           read_resource()
+  
+#mapview::mapview(sf_rc_centres)
+
+```
+
