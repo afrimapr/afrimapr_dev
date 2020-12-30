@@ -1,0 +1,126 @@
+---
+title: "worldpop-ages"
+output: html_document
+author: andy south
+---
+  
+Look at worldpop popn estimates by country and age ranges  
+
+https://github.com/wpgp/wopr
+
+demo: 
+https://github.com/wpgp/wopr/blob/master/demo/wopr_demo.R
+
+https://apps.worldpop.org/woprVision/
+
+Vignette explaining how to access worldpop API directly :
+https://github.com/wpgp/wopr/blob/master/vignettes/woprAPI.Rmd
+
+Also different R package to access the worldpop API :
+https://github.com/wpgp/wpCPR
+
+DRC data in wopr - but popn is just for a few selected provinces in the east (in both v1 & 2) :
+https://wopr.worldpop.org/?COD/
+
+In contrast this does contain data for whole country, but not sure how to get at via R :
+there do seem to be older worldpop data on age profiles for all of DRC
+they are available as one tiff file per age/sex group
+https://www.worldpop.org/geodata/summary?id=50153
+
+TODO check out this pacakge :
+https://github.com/wpgp/wpgpDownloadR
+and maybe others from here : https://www.worldpop.org/sdi/plugins
+
+
+Note that main purpose of wopr seems to be to provide aggregated popn estimates at points or in polygons.
+
+We could test out getting popn estimates by admin regions.
+
+Note that the raster map displayed in the wopr vision app consists of tiles accessed from worldpop API.
+
+Key functions :
+
+woprize : Query WOPR to get population totals and confidence intervals for sf polygon or point features.
+getPop : Query WOPR using an sf point or polygon to get population estimates as a vector of samples from the Bayesian posterior prediction for that location.
+
+agesex_select	
+character vector. Age-sex groups (e.g. "m0", "m1", "m5").
+default is :
+c(paste0("m", c(0, 1, seq(5, 80, 5))), paste0("f", c(0, 1, seq(5, 80,5))))
+which gives :
+"m0"  "m1"  "m5"  "m10" "m15" "m20" "m25" "m30" "m35" "m40" "m45" "m50" "m55" "m60" "m65" "m70" "m75" "m80" "f0" "f1"  "f5"  "f10" "f15" "f20" "f25" "f30" "f35" "f40" "f45" "f50" "f55" "f60" "f65" "f70" "f75" "f80"
+
+So to get over 60s 
+sexes <- c("m", "f")
+ages <- seq(60, 80, 5)
+c(paste0(rep(sexes,each=length(ages)),ages))
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE)
+
+#library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(purrr) # for pluck
+library(sf)
+library(tmap)
+library(lubridate)
+library(afriadmin)
+
+
+#remotes::install_github('wpgp/wopr')
+library(wopr)
+
+#using new path specification avoiding double slashes
+#folder <- r"(C:\Dropbox\_afrimapr\data\covid-hera-hdx\)"
+
+```
+
+
+```{r, worldpop-wopr-demo-egs, eval=TRUE, warning=FALSE}
+
+
+##---- population estimates for a single polygon ----##
+
+# get population total
+N <- getPop(feature=wopr_polys[1,],
+            country='NGA',
+            version='v1.2')
+
+# summarize population total
+summaryPop(N, confidence=0.95, tails=2, belowthresh=1e5, abovethresh=2e5)
+hist(N)
+
+##---- population estimates for multiple features ----##
+# example from demo, takes ~ 30 seconds to run, accesses worldpop API
+
+#andy to get over 60s 
+sexes <- c("m", "f")
+ages <- seq(60, 80, 5)
+over60 <- c(paste0(rep(sexes,each=length(ages)),ages))
+
+# get population totals
+totals <- woprize(features=wopr_polys,
+                  country='NGA',
+                  version='v1.2',
+                  #my age selction >=60
+                  agesex_select=over60,
+                  confidence=0.95,
+                  tails=2,
+                  belowthresh=1e5,
+                  abovethresh=2e5
+                  )
+
+#to view df without geometry
+sf::st_drop_geometry(totals)
+
+tmap::tm_shape(totals) + tmap::tm_fill('mean', palette='Reds', legend.reverse=T)
+
+
+
+#mapview::mapview(sfareas, zcol='edite_par', label=paste(sfareas$AS,"in",sfareas$ZS))
+
+
+
+```

@@ -93,6 +93,92 @@ mapview::mapview(sfg3areas, zcol='source', label=paste(sfg3areas$aire_sante,"in"
 
 ```
 
+```{r, drc-grid3-catchment-wpop, eval=TRUE, warning=FALSE}
+
+# FAILS because the wopr data for DRC are for a few provinces around Kinshasa, not where the health catchment area data are
+# there do seem to be older worldpop data on age profiles for all of DRC
+# they are available as one tiff file per age/sex group
+# https://www.worldpop.org/geodata/summary?id=50153
+# must be a better way of getting at ? ...
+
+# checking what DRC data is in the worldpop catalog
+catalogue <- getCatalogue()
+#catalogue <- getCatalogue(spatial_query=T) #suggests that v1.0 & v2.0 accept spatial queries
+
+# Select files from the catalogue by subsetting the data frame
+selection <- subset(catalogue,
+                    country == 'COD' &
+                    category == 'Population')
+
+
+#try worldpop to get over 60 popn per health catchment
+
+#remotes::install_github('wpgp/wopr')
+library(wopr)
+
+#andy to get over 60s 
+sexes <- c("m", "f")
+ages <- seq(60, 80, 5)
+over60 <- c(paste0(rep(sexes,each=length(ages)),ages))
+
+
+#both areas & zones fail
+
+#Submitting 589 feature(s) to:  https://api.worldpop.org/v1/wopr/polyagesex 
+#Checking status of 605 tasks:
+#  11%...22%...33%...44%...55%...Error in results[[j]] : subscript out of bounds
+
+# Submitting 27 feature(s) to:
+#   https://api.worldpop.org/v1/wopr/polyagesex 
+# Checking status of 42 tasks:
+#   12%...24%...Error in results[[j]] : subscript out of bounds
+
+# get population totals
+#589 areas
+sfg3areaswpop60 <- woprize(features=sfg3areas,
+                  country='COD',
+                  version='v2.0',
+                  #my age selction >=60
+                  agesex_select=over60,
+                  confidence=0.95,
+                  tails=2,
+                  belowthresh=1e5,
+                  abovethresh=2e5
+                  )
+#27 zones
+sfg3zoneswpop60 <- woprize(features=sfg3zones,
+                  country='COD',
+                  #version='v1.2',
+                  #my age selction >=60
+                  agesex_select=over60,
+                  confidence=0.95,
+                  tails=2,
+                  belowthresh=1e5,
+                  abovethresh=2e5
+                  )
+
+#just one zone does work and returns results nearly straightaway
+#but NA for all numeric results and MESSAGE column says 'Internal File Error'
+#even doing for first 10 rows gives NAs and Internal File Error in all
+#setting version-'v2.0' fixed it to return non NA values
+#but now has zeroes for all in mean, median & belowthresh =1
+#also v1.0 gives zeros too
+sfg3zoneswpop60 <- woprize(features=sfg3zones[1:10,],
+                  country='COD',
+                  version='v1.0'#,
+                  #my age selction >=60
+                  #agesex_select=over60,
+                  #confidence=0.95,
+                  #tails=2,
+                  #belowthresh=1e5,
+                  #abovethresh=2e5
+                  )
+
+
+
+
+```
+
 
 ```{r, drc-grid3-facilities, eval=TRUE, warning=FALSE}
 
