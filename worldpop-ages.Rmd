@@ -27,9 +27,15 @@ there do seem to be older worldpop data on age profiles for all of DRC
 they are available as one tiff file per age/sex group
 https://www.worldpop.org/geodata/summary?id=50153
 
-TODO check out this pacakge :
+TODO 
+check out these packages :
+
+https://github.com/TheDavidChen/FemaleWorldPop
+seems to allow age & sex extraction of worldpop data
+
 https://github.com/wpgp/wpgpDownloadR
 and maybe others from here : https://www.worldpop.org/sdi/plugins
+
 
 
 Note that main purpose of wopr seems to be to provide aggregated popn estimates at points or in polygons.
@@ -68,12 +74,127 @@ library(tmap)
 library(lubridate)
 library(afriadmin)
 
-
 #remotes::install_github('wpgp/wopr')
 library(wopr)
 
+#remotes::install_github("wpgp/wpgpDownloadR")
+library(wpgpDownloadR)
+
 #using new path specification avoiding double slashes
 #folder <- r"(C:\Dropbox\_afrimapr\data\covid-hera-hdx\)"
+
+```
+
+
+```{r, worldpop-wpgpDownloadR, eval=TRUE, warning=FALSE}
+
+#remotes::install_github("wpgp/wpgpDownloadR")
+#library(wpgpDownloadR)
+
+#see also for code on extracting worldpop data e.g. by admin areas 
+#https://github.com/TheDavidChen/FemaleWorldPop/blob/master/2_PopExtraction.R
+
+#this code aggregates dataframe by age after earlier having calculated numbers per admin units
+#https://github.com/TheDavidChen/FemaleWorldPop/blob/master/4_ageAggregation.R
+
+dfdatasets <- wpgpListCountryDatasets(ISO3="COD") #cod = drc
+
+#298 rows
+
+#e.g.
+#agesex_m_0_2020   Estimated 0-12 month old male per grid-cell  in 2020
+#agesex_m_1_2020   Estimated 1-4 year old male per grid-cell  in 2020
+#agesex_m_80_2020  Estimated 80 year old male per grid-cell  in 2020
+
+#returns path of downloaded filr
+datapath80 <- wpgpGetCountryDataset(ISO3 = "COD",
+                            covariate = "agesex_m_80_2020" )
+                            #    destDir ="G:\\WorldPop_Data")
+#60
+datapath60 <- wpgpGetCountryDataset(ISO3 = "COD",
+                            covariate = "agesex_m_60_2020" )
+
+library(raster)
+rast80 <- raster::raster(datapath80)
+rast60 <- raster::raster(datapath60)
+
+plot(rast80)
+
+dim(rast80)
+#[1] 22610 22918 
+
+mapview::mapview(rast80)
+mapview::mapview(rast60) #is max really ~ 6 per 100m2 for male 60-65
+
+
+#TODO we could write code to calculate estimated numbers of people by age & sex (e.g. over 60s)
+#probably best to summarise by admin units first (e.g. health catchments and/or geoboundaries)
+#to make calculations and data amounts more tractable
+
+#beware these 100m resolution files are big, ~ 20k*20k cells, up to 1GB
+#therefore good reason to convert to polygons
+
+year <- 2020
+age_start <- 60
+age_end <- 80
+layer <- 0
+downloaded <- TRUE
+destDir <- "C:\\Dropbox\\_afrimapr\\data\\worldpop"
+countryiso <- "cod"
+
+for( sex in c('f','m'))
+{
+  age <- age_start
+  
+  # Stop when the age exceeds the specified age_end
+  while (age <= age_end) {
+
+    # Create the link
+    cov_name <- paste0("agesex_", sex, "_", age, "_", year)
+
+    # save covariate names
+    #cov_names <- rbind(cov_names, c(year, age, cov_name))
+    
+    
+    #download data if not already
+    if (!downloaded)
+    {
+      #takes ~ a few mins to download each layer
+      datapath <- wpgpGetCountryDataset(ISO3 = "COD",
+                                        covariate = cov_name,
+                                        destDir = destDir)      
+    } else
+    {
+      datapath <- paste0(destDir,"\\",countryiso,"_",cov_name,".tif")
+    }
+    
+    
+    rast <- raster::raster(datapath)
+    
+    # is it useful to add these to a raster stack
+    # or to try to identify individual objects by name
+    layer <- layer + 1
+    
+    if (layer==1) rstack <- raster::stack(rast) 
+    else rstack <- raster::addLayer(rstack, rast)
+    
+    # ages available in intervals of 5
+    age <- age + 5
+  } 
+  
+}
+
+# Sum all layers (ages & sexes) in the raster stack
+rast_sum <- sum(rstack) #takes ~ 12 mins
+
+mapview::mapview(rast_sum)
+
+#or r <- calc(s, fun=sum). 
+#calc should be faster when using complex formulas on large datasets & is possible to set an output filename and file type preferences.
+
+#takes a few minutes
+writeRaster(rast_sum, filename=paste0(destDir,"\\",countryiso,"_",age_start,"to",age_end,".tif"))
+#"C:\\Dropbox\\_afrimapr\\data\\worldpop\\cod_60to80.tif"
 
 ```
 
