@@ -22,6 +22,7 @@ library(sf)
 library(tmap)
 library(lubridate)
 library(afriadmin)
+library(raster)
 
 
 #using new path specification avoiding double slashes
@@ -95,11 +96,68 @@ mapview::mapview(sfg3areas, zcol='source', label=paste(sfg3areas$aire_sante,"in"
 
 ```{r, drc-grid3-catchment-wpop, eval=TRUE, warning=FALSE}
 
-# FAILS because the wopr data for DRC are for a few provinces around Kinshasa, not where the health catchment area data are
-# there do seem to be older worldpop data on age profiles for all of DRC
+#try worldpop to get over 60 popn per health catchment
+
+# using older worldpop data on age profiles for all of DRC
 # they are available as one tiff file per age/sex group
 # https://www.worldpop.org/geodata/summary?id=50153
-# must be a better way of getting at ? ...
+# and via package wpgpDownloadR
+
+#file created in worldpop-ages.Rmd using package wpgpDownloadR
+
+#TODO read in this file and sum to polygons
+
+datapath <- "C:\\Dropbox\\_afrimapr\\data\\worldpop\\cod_60to80.tif"
+
+rast6080 <- raster::raster(datapath)
+
+#aggregate from 100m to 1km to see if works better for display
+#sum to get total popn counts
+rast6080_1km <- raster::aggregate(rast6080, fun=sum, fact=10)
+#maximum number of pixels for Raster* viewing is 5e+05 ; the supplied Raster* has 5182212
+#dim(rast6080_1km) # 2261 2292 max value 4k
+rast6080_4km2 <- raster::aggregate(rast6080, fun=sum, fact=20)
+rast6080_10km <- raster::aggregate(rast6080, fun=sum, fact=100)
+
+
+#https://geocompr.robinlovelace.net/geometric-operations.html#raster-extraction
+
+#takes many minutes to complete
+dfg3areas6080 <- raster::extract(x = rast6080, y = sfg3areas, df = TRUE) 
+#eek 20 million rows
+
+#ID column contains the row number of the polygon
+#The order of the returned values corresponds to the order of object y. If df=TRUE, this is also indicated in the first variable ('ID').
+
+df6080bypoly <-dfg3areas6080 %>%
+  group_by(ID) %>%
+  summarise(numover60s = as.integer(sum(cod_60to80, na.rm=TRUE)),
+            density = mean(cod_60to80, na.rm=TRUE), 
+            ncells = n())
+
+#can just rbind the results back onto the sf object
+sfg3area6080 <- cbind(sfg3areas, df6080bypoly)
+
+#this is good test showing that high value polygons do correspond to high raster values
+mapview(sfg3area6080, zcol='numover60s') +
+  mapview(rast6080_10km, at = c(0,1,10,100,1000,10000,105000))
+
+
+mapview::mapview(rast6080)
+
+mapview::mapview(rast6080_10km) #max 105,000
+
+
+
+```
+
+
+```{r, drc-grid3-wopr-fails, eval=FALSE, warning=FALSE}
+
+# FAILS because the wopr data for DRC are for a few provinces around Kinshasa, not where the health catchment area data are
+
+#remotes::install_github('wpgp/wopr')
+library(wopr)
 
 # checking what DRC data is in the worldpop catalog
 catalogue <- getCatalogue()
@@ -111,16 +169,10 @@ selection <- subset(catalogue,
                     category == 'Population')
 
 
-#try worldpop to get over 60 popn per health catchment
-
-#remotes::install_github('wpgp/wopr')
-library(wopr)
-
 #andy to get over 60s 
 sexes <- c("m", "f")
 ages <- seq(60, 80, 5)
 over60 <- c(paste0(rep(sexes,each=length(ages)),ages))
-
 
 #both areas & zones fail
 
@@ -173,9 +225,6 @@ sfg3zoneswpop60 <- woprize(features=sfg3zones[1:10,],
                   #belowthresh=1e5,
                   #abovethresh=2e5
                   )
-
-
-
 
 ```
 
