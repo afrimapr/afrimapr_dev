@@ -1,6 +1,6 @@
 #afrimapr_dev/drc_prototype_app/server.r
 
-# selected countries & selection by admin region enabled by default
+#display DRC health catchments and facilities for 3 provinces from GRID3, over 60 popn from worldpop
 
 cran_packages <- c("leaflet","remotes")
 lapply(cran_packages, function(x) if(!require(x,character.only = TRUE)) install.packages(x))
@@ -11,11 +11,11 @@ library(leaflet)
 library(ggplot2)
 library(patchwork) #for combining ggplots
 
-if(!require(afrihealthsites)){
-  remotes::install_github("afrimapr/afrihealthsites")
-}
-
-library(afrihealthsites)
+# if(!require(afrihealthsites)){
+#   remotes::install_github("afrimapr/afrihealthsites")
+# }
+# 
+# library(afrihealthsites)
 #library(mapview)
 
 
@@ -28,6 +28,12 @@ zoom_view <- NULL
 # perhaps can just reset zoomed view to NULL when country is changed
 
 
+# load presaved data
+load("cod_rast6080_10km.rda")
+load("sfg3area6080.rda")
+load("sfg3zones.rda")
+
+
 # Define a server for the Shiny app
 function(input, output) {
 
@@ -35,15 +41,26 @@ function(input, output) {
   # mapview interactive leaflet map plot
   output$serve_healthsites_map <- renderLeaflet({
 
-    mapplot <- afrihealthsites::compare_hs_sources(input$country,
-                                                   datasources=c('healthsites','who'),
-                                                   plot='mapview',
-                                                   plotshow=FALSE,
-                                                   hs_amenity=input$hs_amenity,
-                                                   type_column = input$who_type_option, #allows for 9 broad cats
-                                                   who_type=input$selected_who_cats,
-                                                   admin_level=input$cboxadmin,
-                                                   admin_names=input$selected_admin_names)
+ 
+    breaks <- c(0,1,10,100,1000,10000,105000)
+    
+    #palname <- "Oslo"
+    palname <- "Lajolla"
+    
+    mapplot <- mapview::mapview(rast6080_10km, col.regions=hcl.colors(n=length(breaks)-1, palette=palname, rev=FALSE), at=breaks )   
+    
+    mapplot <- mapplot + mapview(sfg3area6080, zcol='numover60s')
+    
+    
+    # mapplot <- afrihealthsites::compare_hs_sources(input$country,
+    #                                                datasources=c('healthsites','who'),
+    #                                                plot='mapview',
+    #                                                plotshow=FALSE,
+    #                                                hs_amenity=input$hs_amenity,
+    #                                                type_column = input$who_type_option, #allows for 9 broad cats
+    #                                                who_type=input$selected_who_cats,
+    #                                                admin_level=input$cboxadmin,
+    #                                                admin_names=input$selected_admin_names)
 
     # to retain zoom if only types have been changed
     if (!is.null(zoom_view))

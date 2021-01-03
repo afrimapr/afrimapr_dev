@@ -105,8 +105,6 @@ mapview::mapview(sfg3areas, zcol='source', label=paste(sfg3areas$aire_sante,"in"
 
 #file created in worldpop-ages.Rmd using package wpgpDownloadR
 
-#TODO read in this file and sum to polygons
-
 datapath <- "C:\\Dropbox\\_afrimapr\\data\\worldpop\\cod_60to80.tif"
 
 rast6080 <- raster::raster(datapath)
@@ -142,11 +140,30 @@ sfg3area6080 <- cbind(sfg3areas, df6080bypoly)
 mapview(sfg3area6080, zcol='numover60s') +
   mapview(rast6080_10km, at = c(0,1,10,100,1000,10000,105000))
 
+#TODO check why raster at 10x10km has a max of 100,000
+#but polygons have a max of ~ 5,000 even though they seem to be bigger than the raster cells ?
+
 
 mapview::mapview(rast6080)
 
 mapview::mapview(rast6080_10km) #max 105,000
 
+#list sequential palettes avail in mapview
+hcl.pals("sequential")
+
+breaks <- c(0,1,10,100,1000,10000,105000)
+palname <- 'Purples 3'
+palname <- "Turku"
+palname <- "SunsetDark"
+palname <- "Oslo"
+palname <- "Lajolla"
+mapview(rast6080_10km, col.regions=hcl.colors(n=length(breaks)-1, palette=palname, rev=FALSE), at=breaks )
+
+
+#save R objects to use in app
+save(rast6080_10km, file="drc_prototype_app//cod_rast6080_10km.rda")
+save(sfg3area6080, file="drc_prototype_app//sfg3area6080.rda")
+save(sfg3zones, file="drc_prototype_app//sfg3zones.rda")
 
 
 ```
