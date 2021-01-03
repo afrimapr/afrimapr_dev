@@ -1,4 +1,4 @@
-#afrihealthsites/vaccine_prototype/server.r
+#afrimapr_dev/drc_prototype_app/server.r
 
 # selected countries & selection by admin region enabled by default
 
