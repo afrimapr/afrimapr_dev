@@ -8,15 +8,16 @@ lapply(cran_packages, function(x) if(!require(x,character.only = TRUE)) install.
 
 library(remotes)
 library(leaflet)
-library(ggplot2)
-library(patchwork) #for combining ggplots
+#library(ggplot2)
+#library(patchwork) #for combining ggplots
+library(mapview)
 
 # if(!require(afrihealthsites)){
 #   remotes::install_github("afrimapr/afrihealthsites")
 # }
 # 
 # library(afrihealthsites)
-#library(mapview)
+
 
 
 #global variables
@@ -29,9 +30,18 @@ zoom_view <- NULL
 
 
 # load presaved data
-load("cod_rast6080_10km.rda")
+#load("cod_rast6080_10km.rda")
 load("sfg3area6080.rda")
 load("sfg3zones.rda")
+load("sfg3facilities.rda")
+
+#to protect against potential problems with rgdal versions e.g. on shinyapps
+sf::st_crs(sfg3area6080) <- 4326
+sf::st_crs(sfg3zones) <- 4326
+sf::st_crs(sfg3facilities) <- 4326
+
+sfg3zonelines <- sf::st_cast(sfg3zones,"MULTILINESTRING")
+
 
 
 # Define a server for the Shiny app
@@ -41,15 +51,54 @@ function(input, output) {
   # mapview interactive leaflet map plot
   output$serve_healthsites_map <- renderLeaflet({
 
+    
+    sf1 <- sfg3area6080
  
-    breaks <- c(0,1,10,100,1000,10000,105000)
+    # if zone choice is selected, select rows
+    if (input$cboxzones)
+    {
+      sf1 <- sf1[which(sf1$zone_sante %in% input$selected_zone_names),]
+      sfg3zonelines <- sfg3zonelines[which(sfg3zonelines$zone_sante %in% input$selected_zone_names),]
+      sfg3facilities <- sfg3facilities[which(sfg3facilities$zone_sante %in% input$selected_zone_names),]      
+    } 
+
+ 
+    #plot areas (smaller)
+    mapplot <- mapview(sf1, zcol='numover60s', 
+                       label=paste(sf1$aire_sante," popn.>60:",sf1$numover60s),
+                       layer.name="estimated popn >60 (WorldPop)",
+                       lwd = 1,
+                       col.regions=hcl.colors(n=6, palette="Lajolla"),
+                       alpha.regions=0.8
+                       )
     
-    #palname <- "Oslo"
-    palname <- "Lajolla"
+    #plot zones (bigger)
+    #found that mouseover always gave the zones output (not what I want) irrespective of order ?? try changing it to lines
     
-    mapplot <- mapview::mapview(rast6080_10km, col.regions=hcl.colors(n=length(breaks)-1, palette=palname, rev=FALSE), at=breaks )   
+    #mapplot <- mapplot + mapview(sfg3zonelines, zcol="zone_sante", color = "darkred", col.regions = "blue", alpha.regions=0, lwd = 0.5, legend=FALSE)
+
+    mapplot <- mapplot + mapview(sfg3zonelines, zcol="zone_sante", color = "darkred", alpha.regions=0, lwd = 2, legend=FALSE)
     
-    mapplot <- mapplot + mapview(sfg3area6080, zcol='numover60s')
+    
+    #facilities
+    mapplot <- mapplot + mapview(sfg3facilities, zcol="type", cex=3, alpha=0,
+                                 layer.name="health facilities (Grid3)",
+                                 label=paste(sfg3facilities$fosa_nom))
+    
+    
+    
+    #add selected admin regions
+    #mapview::mapview(sfadmin_sel, zcol="shapeName", color = "darkred", col.regions = "blue", alpha.regions=0.01, lwd = 2, legend=FALSE)
+    
+    
+    # breaks <- c(0,1,10,100,1000,10000,105000)
+    # 
+    # #palname <- "Oslo"
+    # palname <- "Lajolla"
+    # 
+    # mapplot <- mapview::mapview(rast6080_10km, col.regions=hcl.colors(n=length(breaks)-1, palette=palname, rev=FALSE), at=breaks )   
+    # 
+    # mapplot <- mapplot + mapview(sfg3area6080, zcol='numover60s')
     
     
     # mapplot <- afrihealthsites::compare_hs_sources(input$country,
@@ -63,10 +112,10 @@ function(input, output) {
     #                                                admin_names=input$selected_admin_names)
 
     # to retain zoom if only types have been changed
-    if (!is.null(zoom_view))
-    {
-      mapplot@map <- leaflet::fitBounds(mapplot@map, lng1=zoom_view$west, lat1=zoom_view$south, lng2=zoom_view$east, lat2=zoom_view$north)
-    }
+    # if (!is.null(zoom_view))
+    # {
+    #   mapplot@map <- leaflet::fitBounds(mapplot@map, lng1=zoom_view$west, lat1=zoom_view$south, lng2=zoom_view$east, lat2=zoom_view$north)
+    # }
 
 
     #important that this returns the @map bit
@@ -134,6 +183,21 @@ function(input, output) {
                        inline = FALSE)
   })
 
+  ################################################################################
+  # dynamic selectable list of health zones
+  output$select_zones <- renderUI({
+    
+    #sort for alphabetical order
+    zone_names <- sort(unique(sfg3zones$zone_sante))
+    
+    #should I allow multiple regions or just one ?
+
+    selectInput("selected_zone_names", label = NULL, #label = h5(""),
+                choices = zone_names,
+                selected = zone_names[1],
+                size=5, selectize=FALSE, multiple=TRUE)
+  })  
+  
   ################################################################################
   # dynamic selectable list of admin regions for selected country [&later admin level]
   output$select_admin <- renderUI({
@@ -216,20 +280,61 @@ function(input, output) {
   })
 
   #######################
-  # table of raw who data
-  output$table_raw_who <- DT::renderDataTable({
-
-    sfwho <- afrihealthsites::afrihealthsites(input$country, datasource = 'who', who_type = input$selected_who_cats, plot = FALSE,
-                                              admin_level=input$cboxadmin,
-                                              admin_names=input$selected_admin_names)
+  # table of grid3 health areas data
+  output$table_areas <- DT::renderDataTable({
 
     # drop the geometry column - not wanted in table
-    sfwho <- sf::st_drop_geometry(sfwho)
+    sf1 <- sf::st_drop_geometry(sfg3area6080)
 
-    DT::datatable(sfwho, options = list(pageLength = 50))
+    # if zone choice is selected, select rows
+    if (input$cboxzones)
+    {
+      sf1 <- sf1[which(sf1$zone_sante %in% input$selected_zone_names),]
+    }     
+    
+    # names(sfg3area6080)
+    # [1] "province"   "zs_uid"     "zone_sante" "as_uid"     "aire_sante" "nom_alt"    "note"       "source"     "edite_date" "area_sqkm" 
+    # [11] "Shape_Leng" "Shape_Area" "ID"         "numover60s" "density"    "ncells"     "geometry"      
+    
+    # remove some other columns
+    #toinclude <- c("zone_sante","aire_sante","source","edite_date","numover60s","ncells")
+    toinclude <- c("zone_sante","aire_sante","source","numover60s")
+    
+    sf1 <- sf1[,which(names(sf1) %in% toinclude)]
+    
+    #sort so that highest popns appear top
+    sf1 <- sf1[order(sf1$numover60s, decreasing=TRUE),]
+    
+    DT::datatable(sf1, options = list(pageLength = 50))
 
   })
 
+  #######################
+  # table of grid3 facilities data
+  output$table_facilities <- DT::renderDataTable({
+    
+    # drop the geometry column - not wanted in table
+    sf1 <- sf::st_drop_geometry(sfg3facilities)
+    
+    # if zone choice is selected, select rows
+    if (input$cboxzones)
+    {
+      sf1 <- sf1[which(sf1$zone_sante %in% input$selected_zone_names),]
+    }    
+    
+    # names(sfg3facilities)
+    # [1] "province"   "zs_uid"     "zone_sante" "as_uid"     "aire_sante" "as_nom_alt" "fosa_uid"   "fosa_nom"   "fosa_nom2"  "type"      
+    # [11] "type_abr"   "source"     "date_utc"   "lat"        "lon"        "geometry"   
+    
+    # remove some other columns
+    toinclude <- c("fosa_nom", "type", "zone_sante","aire_sante","source","date_utc")
+    
+    sf1 <- sf1[,which(names(sf1) %in% toinclude)]
+    
+    DT::datatable(sf1, options = list(pageLength = 50))
+    
+  })  
+  
   ###############################
   # table of raw healthsites data
   output$table_raw_hs <- DT::renderDataTable({

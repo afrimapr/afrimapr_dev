@@ -1,6 +1,6 @@
 #afrimapr_dev/drc_prototype_app/ui.r
 
-#display DRC health catchments and facilities for 3 provinces from GRID3, over 60 popn from worldpop
+#display DRC health zones and their areas and facilities for 3 provinces from GRID3, over 60 popn calculated from WorldPop gridded data
 
 cran_packages <- c("shiny","leaflet","remotes")
 
@@ -20,7 +20,7 @@ library(remotes)
 
 fluidPage(
 
-  headerPanel('DRC health catchments, facilities & popn over 60'),
+  headerPanel('DRC health catchments, facilities & popn over 60 [prototype NOT for decision support]'),
 
   p("explore DRC health catchments and facilities for 3 provinces from ",
     a("GRID3 ", href="https://data.humdata.org/dataset/drc-health-data", target="_blank"), 
@@ -58,18 +58,13 @@ fluidPage(
     #             size=5, selectize=FALSE, multiple=TRUE, selected='Democratic Republic of the Congo'),
 
 
-    #selection by admin regions
-    # checkboxInput("cboxadmin", "Select facilities by admin1 region",value=TRUE),
-    # conditionalPanel(
-    #   condition = "input.cboxadmin",
-    # 
-    #   #"admin regions selection to go here"
-    # 
-    #   #will want a selectInput box of potential admin levels by country
-    # 
-    #   #first try it for admin1
-    #   uiOutput("select_admin")
-    # ),
+    #selection by health zones
+    checkboxInput("cboxzones", "Select health zones",value=FALSE),
+    conditionalPanel(
+      condition = "input.cboxzones",
+
+      uiOutput("select_zones")
+    ),
 
 
     # checkboxGroupInput("hs_amenity", label = "healthsites categories",
@@ -107,9 +102,10 @@ fluidPage(
 
     #tabs
     tabsetPanel(type = "tabs",
-                tabPanel("map", leafletOutput("serve_healthsites_map", height=800))
+                tabPanel("map", leafletOutput("serve_healthsites_map", height=800)),
                 #tabPanel("facility types", plotOutput("plot_fac_types", height=600)),
-                #tabPanel("healthsites data", DT::dataTableOutput("table_raw_hs")),
+                tabPanel("health area table", DT::dataTableOutput("table_areas")),
+                tabPanel("facilities table", DT::dataTableOutput("table_facilities"))
                 #tabPanel("WHO data", DT::dataTableOutput("table_raw_who"))
                 #tabPanel("about", NULL)
     )

@@ -1,0 +1,13 @@
+name: drc_prototype_app
+title: drc_prototype_app
+username:
+account: andysouth
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 3442699
+bundleId: 4057857
+url: https://andysouth.shinyapps.io/drc_prototype_app/
+when: 1609790843.76781
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: cod_rast6080_10km.rda

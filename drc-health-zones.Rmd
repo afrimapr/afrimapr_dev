@@ -94,6 +94,25 @@ mapview::mapview(sfg3areas, zcol='source', label=paste(sfg3areas$aire_sante,"in"
 
 ```
 
+```{r, drc-grid3-facilities, eval=TRUE, warning=FALSE}
+
+ds <- search_datasets("drc grid3 facilities") %>% 
+  pluck(1) #%>% ## select the first dataset
+  
+ds %>% get_resources() 
+
+#1st resource is pdf, 2nd is zip containing shape
+
+#again downloaded because the zip fails rhdx
+
+# 1395 facilities
+sfg3facilities <- sf::st_read(paste0(urlfolder,"GRID3_DRC_HL_TN_Health_Facilities_V01_Beta.shp"))
+
+
+
+```
+
+
 ```{r, drc-grid3-catchment-wpop, eval=TRUE, warning=FALSE}
 
 #try worldpop to get over 60 popn per health catchment
@@ -164,7 +183,7 @@ mapview(rast6080_10km, col.regions=hcl.colors(n=length(breaks)-1, palette=palnam
 save(rast6080_10km, file="drc_prototype_app//cod_rast6080_10km.rda")
 save(sfg3area6080, file="drc_prototype_app//sfg3area6080.rda")
 save(sfg3zones, file="drc_prototype_app//sfg3zones.rda")
-
+save(sfg3facilities, file="drc_prototype_app//sfg3facilities.rda")
 
 ```
 
@@ -245,24 +264,6 @@ sfg3zoneswpop60 <- woprize(features=sfg3zones[1:10,],
 
 ```
 
-
-```{r, drc-grid3-facilities, eval=TRUE, warning=FALSE}
-
-ds <- search_datasets("drc grid3 facilities") %>% 
-  pluck(1) #%>% ## select the first dataset
-  
-ds %>% get_resources() 
-
-#1st resource is pdf, 2nd is zip containing shape
-
-#again downloaded because the zip fails rhdx
-
-# 1395 facilities
-sfg3facilities <- sf::st_read(paste0(urlfolder,"GRID3_DRC_HL_TN_Health_Facilities_V01_Beta.shp"))
-
-
-
-```
 
 
 
