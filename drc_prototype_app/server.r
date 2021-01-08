@@ -12,11 +12,11 @@ library(leaflet)
 #library(patchwork) #for combining ggplots
 library(mapview)
 
-# if(!require(afrihealthsites)){
-#   remotes::install_github("afrimapr/afrihealthsites")
-# }
-# 
-# library(afrihealthsites)
+if(!require(afrihealthsites)){
+  remotes::install_github("afrimapr/afrihealthsites")
+}
+
+#library(afrihealthsites)
 
 
 
@@ -42,6 +42,11 @@ sf::st_crs(sfg3facilities) <- 4326
 
 sfg3zonelines <- sf::st_cast(sfg3zones,"MULTILINESTRING")
 
+# I could subset points & save as object to increase load speed
+# sfhs <- afrihealthsites::afrihealthsites("cod", datasource='healthsites', plot=FALSE, 
+#                                          hs_amenity=c('clinic','doctors','pharmacy','hospital'),
+#                                          admin_level=1,
+#                                          admin_names=c('Lomami','Haut-Lomami','Tanganyika')) #'Haut-Katanga'
 
 
 # Define a server for the Shiny app
@@ -62,13 +67,16 @@ function(input, output) {
       sfg3facilities <- sfg3facilities[which(sfg3facilities$zone_sante %in% input$selected_zone_names),]      
     } 
 
+    # to set length of colour palette to length of data by interpolation partly to avoid warnings from mapview
+    # colorRampPalette() returns a function that accepts the number of categories
+    col.regions <- grDevices::colorRampPalette(hcl.colors(n=6, palette="Lajolla"))
  
     #plot areas (smaller)
     mapplot <- mapview(sf1, zcol='numover60s', 
                        label=paste(sf1$aire_sante," popn.>60:",sf1$numover60s),
                        layer.name="estimated popn >60 (WorldPop)",
                        lwd = 1,
-                       col.regions=hcl.colors(n=6, palette="Lajolla"),
+                       col.regions=col.regions,
                        alpha.regions=0.8
                        )
     
@@ -80,12 +88,15 @@ function(input, output) {
     mapplot <- mapplot + mapview(sfg3zonelines, zcol="zone_sante", color = "darkred", alpha.regions=0, lwd = 2, legend=FALSE)
     
     
-    #facilities
-    mapplot <- mapplot + mapview(sfg3facilities, zcol="type", cex=3, alpha=0,
+    #grid3 facilities
+    mapplot <- mapplot + mapview(sfg3facilities, zcol="type", cex=4, alpha=0,
                                  layer.name="health facilities (Grid3)",
-                                 label=paste(sfg3facilities$fosa_nom))
+                                 label=paste0("grid3 facility:",sfg3facilities$fosa_nom))
     
-    
+    #healthsites facilities - maybe make them optional ?
+    # mapplot <- mapplot + mapview(sfhs, cex=3, alpha=0, layer.name="healthsites.io",
+    #                              col.regions=hcl.colors(n=4, palette="Reds", rev=FALSE),
+    #                              zcol='amenity', label=paste0("healthsites facility:",sfhs$name))
     
     #add selected admin regions
     #mapview::mapview(sfadmin_sel, zcol="shapeName", color = "darkred", col.regions = "blue", alpha.regions=0.01, lwd = 2, legend=FALSE)
@@ -160,28 +171,6 @@ function(input, output) {
   # })
 
 
-  ################################################################################
-  # dynamic selectable list of who facility categories for selected country
-  output$select_who_cat <- renderUI({
-
-    # get selected country name
-    #input$country
-
-    # get categories in who for this country
-    # first get the sf object - but later don't need to do that
-    # TODO add a function to afrihealthsites package to return just the cats
-    sfwho <- afrihealthsites::afrihealthsites(input$country, datasource = 'who', plot = FALSE)
-
-    #who_cats <- unique(sfwho$`Facility type`)
-    # allowing for 9 cat reclass
-    who_cats <- unique(sfwho[[input$who_type_option]])
-
-    #"who-kemri categories"
-    checkboxGroupInput("selected_who_cats", label = NULL, #label = h5("who-kemri categories"),
-                       choices = who_cats,
-                       selected = who_cats,
-                       inline = FALSE)
-  })
 
   ################################################################################
   # dynamic selectable list of health zones
@@ -224,60 +213,6 @@ function(input, output) {
                        size=5, selectize=FALSE, multiple=TRUE)
   })
 
-  ########################
-  # barplot of facility types
-  output$plot_fac_types <- renderPlot({
-
-
-    #palletes here set to match those in map from compare_hs_sources()
-
-    gg1 <- afrihealthsites::facility_types(input$country,
-                                    datasource = 'healthsites',
-                                    plot = TRUE,
-                                    type_filter = input$hs_amenity,
-                                    #ggcolour_h=c(0,175)
-                                    brewer_palette = "YlGn",
-                                    admin_level=input$cboxadmin,
-                                    admin_names=input$selected_admin_names )
-
-    gg2 <- afrihealthsites::facility_types(input$country,
-                                           datasource = 'who',
-                                           plot = TRUE,
-                                           type_filter = input$selected_who_cats,
-                                           type_column = input$who_type_option, #allows for 9 broad cats
-                                           #ggcolour_h=c(185,360)
-                                           brewer_palette = "BuPu",
-                                           admin_level=input$cboxadmin,
-                                           admin_names=input$selected_admin_names )
-
-    # avoid error for N.Africa countries with no WHO data
-    if (is.null(gg2))
-    {
-      gg1
-
-    } else
-    {
-      #set xmax to be the same for both plots
-      #hack to find max xlim for each object
-      #TODO make this less hacky ! it will probably fail when ggplot changes
-      max_x1 <- max(ggplot_build(gg1)$layout$panel_params[[1]]$x$continuous_range)
-      max_x2 <- max(ggplot_build(gg2)$layout$panel_params[[1]]$x$continuous_range)
-      #set xmax for both plots to this
-      gg1 <- gg1 + xlim(c(0,max(max_x1,max_x2, na.rm=TRUE)))
-      gg2 <- gg2 + xlim(c(0,max(max_x1,max_x2, na.rm=TRUE)))
-
-      #set size of y plots to be dependent on num cats
-      #y axis has cats, this actually gets max of y axis, e.g. for 6 cats is 6.6
-      max_y1 <- max(ggplot_build(gg1)$layout$panel_params[[1]]$y$continuous_range)
-      max_y2 <- max(ggplot_build(gg2)$layout$panel_params[[1]]$y$continuous_range)
-
-      #setting heights to num cats makes bar widths constant between cats
-      gg1 / gg2 + plot_layout(heights=c(max_y1, max_y2)) #patchwork
-    }
-
-
-
-  })
 
   #######################
   # table of grid3 health areas data
