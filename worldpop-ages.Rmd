@@ -138,9 +138,12 @@ year <- 2020
 age_start <- 60
 age_end <- 80
 layer <- 0
-downloaded <- TRUE
+downloaded <- TRUE #FALSE #
 destDir <- "C:\\Dropbox\\_afrimapr\\data\\worldpop"
-countryiso <- "cod"
+#countryiso <- "cod"
+#countryiso <- "sen" #senegal
+#countryiso <- "ssd" #south sudan
+countryiso <- "sle" #sierra leone
 
 for( sex in c('f','m'))
 {
@@ -160,7 +163,7 @@ for( sex in c('f','m'))
     if (!downloaded)
     {
       #takes ~ a few mins to download each layer
-      datapath <- wpgpGetCountryDataset(ISO3 = "COD",
+      datapath <- wpgpGetCountryDataset(ISO3 = countryiso,
                                         covariate = cov_name,
                                         destDir = destDir)      
     } else
@@ -193,7 +196,7 @@ mapview::mapview(rast_sum)
 #calc should be faster when using complex formulas on large datasets & is possible to set an output filename and file type preferences.
 
 #takes a few minutes
-writeRaster(rast_sum, filename=paste0(destDir,"\\",countryiso,"_",age_start,"to",age_end,".tif"))
+raster::writeRaster(rast_sum, filename=paste0(destDir,"\\",countryiso,"_",age_start,"to",age_end,".tif"))
 #"C:\\Dropbox\\_afrimapr\\data\\worldpop\\cod_60to80.tif"
 
 ```
