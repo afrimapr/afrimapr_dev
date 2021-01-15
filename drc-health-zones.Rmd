@@ -194,6 +194,14 @@ load("drc_prototype_app//sfg3zones.rda")
 load("drc_prototype_app//sfg3zonelines.rda")
 load("drc_prototype_app//sfg3facilities.rda")
 
+# reduce size of areas file to try to make shinyapps faster
+library(rmapshaper)
+
+sfg3area6080keep5 <- ms_simplify(sfg3area6080, keep = 0.05)
+sfg3zonelineskeep5 <- ms_simplify(sfg3zonelines, keep = 0.05)
+
+save(sfg3area6080keep5, file="drc_prototype_app//sfg3area6080keep5.rda")
+save(sfg3zonelineskeep5, file="drc_prototype_app//sfg3zonelineskeep5.rda")
 
 
 ```

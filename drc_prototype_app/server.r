@@ -30,15 +30,15 @@ zoom_view <- NULL
 
 # load presaved data
 #load("cod_rast6080_10km.rda")
-load("sfg3area6080.rda")
+load("sfg3area6080keep5.rda")
 #load("sfg3zones.rda")
-load("sfg3zonelines.rda")
+load("sfg3zonelineskeep5.rda")
 load("sfg3facilities.rda")
 
 #to protect against potential problems with rgdal versions e.g. on shinyapps
-sf::st_crs(sfg3area6080) <- 4326
+sf::st_crs(sfg3area6080keep5) <- 4326
 #sf::st_crs(sfg3zones) <- 4326
-sf::st_crs(sfg3zonelines) <- 4326
+sf::st_crs(sfg3zonelineskeep5) <- 4326
 sf::st_crs(sfg3facilities) <- 4326
 
 
@@ -57,13 +57,13 @@ function(input, output) {
   output$serve_healthsites_map <- renderLeaflet({
 
     
-    #sf1 <- sfg3area6080
+    #sf1 <- sfg3area6080keep5
  
     # if zone choice is selected, select rows
     if (input$cboxzones)
     {
-      sfg3area6080 <- sfg3area6080[which(sfg3area6080$zone_sante %in% input$selected_zone_names),]
-      sfg3zonelines <- sfg3zonelines[which(sfg3zonelines$zone_sante %in% input$selected_zone_names),]
+      sfg3area6080keep5 <- sfg3area6080keep5[which(sfg3area6080keep5$zone_sante %in% input$selected_zone_names),]
+      sfg3zonelineskeep5 <- sfg3zonelineskeep5[which(sfg3zonelineskeep5$zone_sante %in% input$selected_zone_names),]
       sfg3facilities <- sfg3facilities[which(sfg3facilities$zone_sante %in% input$selected_zone_names),]      
     } 
 
@@ -72,8 +72,8 @@ function(input, output) {
     col.regions <- grDevices::colorRampPalette(hcl.colors(n=6, palette="Lajolla"))
  
     #plot areas (smaller)
-    mapplot <- mapview(sfg3area6080, zcol='numover60s', 
-                       label=paste(sfg3area6080$aire_sante," popn.>60:",sfg3area6080$numover60s),
+    mapplot <- mapview(sfg3area6080keep5, zcol='numover60s', 
+                       label=paste(sfg3area6080keep5$aire_sante," popn.>60:",sfg3area6080keep5$numover60s),
                        layer.name="estimated popn >60 (WorldPop)",
                        lwd = 1,
                        col.regions=col.regions,
@@ -85,7 +85,8 @@ function(input, output) {
     
     #mapplot <- mapplot + mapview(sfg3zonelines, zcol="zone_sante", color = "darkred", col.regions = "blue", alpha.regions=0, lwd = 0.5, legend=FALSE)
 
-    mapplot <- mapplot + mapview(sfg3zonelines, zcol="zone_sante", color = "darkred", alpha.regions=0, lwd = 2, legend=FALSE)
+    #mapplot <- mapplot + mapview(sfg3zonelines, zcol="zone_sante", color = "darkred", alpha.regions=0, lwd = 2, legend=FALSE)
+    mapplot <- mapplot + mapview(sfg3zonelineskeep5, zcol="zone_sante", color = "darkred", alpha.regions=0, lwd = 2, legend=FALSE)
     
     
     #grid3 facilities
@@ -177,7 +178,7 @@ function(input, output) {
   output$select_zones <- renderUI({
     
     #sort for alphabetical order
-    zone_names <- sort(unique(sfg3zonelines$zone_sante))
+    zone_names <- sort(unique(sfg3zonelineskeep5$zone_sante))
     
     #should I allow multiple regions or just one ?
 
@@ -219,7 +220,7 @@ function(input, output) {
   output$table_areas <- DT::renderDataTable({
 
     # drop the geometry column - not wanted in table
-    sf1 <- sf::st_drop_geometry(sfg3area6080)
+    sf1 <- sf::st_drop_geometry(sfg3area6080keep5)
 
     # if zone choice is selected, select rows
     if (input$cboxzones)
@@ -227,7 +228,7 @@ function(input, output) {
       sf1 <- sf1[which(sf1$zone_sante %in% input$selected_zone_names),]
     }     
     
-    # names(sfg3area6080)
+    # names(sfg3area6080keep5)
     # [1] "province"   "zs_uid"     "zone_sante" "as_uid"     "aire_sante" "nom_alt"    "note"       "source"     "edite_date" "area_sqkm" 
     # [11] "Shape_Leng" "Shape_Area" "ID"         "numover60s" "density"    "ncells"     "geometry"      
     
