@@ -20,10 +20,11 @@ library(remotes)
 
 fluidPage(
 
-  headerPanel('DRC health catchments, facilities & popn over 60 [prototype NOT for decision support]'),
+  headerPanel('DRC health boundaries, facilities & popn over 60'),
 
-  p("explore DRC health catchments and facilities for 3 provinces from ",
-    a("GRID3 ", href="https://data.humdata.org/dataset/drc-health-data", target="_blank"), 
+  p("prototype NOT for decision support"),
+  p("data for 3 provinces from ",
+    a("GRID3 via HDX", href="https://data.humdata.org/dataset/drc-health-data", target="_blank"), 
     "over 60 popn from ",
     a("WorldPop ", href="https://www.worldpop.org/geodata/summary?id=50153", target="_blank")
     ),

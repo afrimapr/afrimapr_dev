@@ -6,16 +6,15 @@ cran_packages <- c("leaflet","remotes")
 lapply(cran_packages, function(x) if(!require(x,character.only = TRUE)) install.packages(x))
 
 
-library(remotes)
+#library(remotes)
 library(leaflet)
 #library(ggplot2)
 #library(patchwork) #for combining ggplots
 library(mapview)
 
-if(!require(afrihealthsites)){
-  remotes::install_github("afrimapr/afrihealthsites")
-}
-
+# if(!require(afrihealthsites)){
+#   remotes::install_github("afrimapr/afrihealthsites")
+# }
 #library(afrihealthsites)
 
 
@@ -32,15 +31,16 @@ zoom_view <- NULL
 # load presaved data
 #load("cod_rast6080_10km.rda")
 load("sfg3area6080.rda")
-load("sfg3zones.rda")
+#load("sfg3zones.rda")
+load("sfg3zonelines.rda")
 load("sfg3facilities.rda")
 
 #to protect against potential problems with rgdal versions e.g. on shinyapps
 sf::st_crs(sfg3area6080) <- 4326
-sf::st_crs(sfg3zones) <- 4326
+#sf::st_crs(sfg3zones) <- 4326
+sf::st_crs(sfg3zonelines) <- 4326
 sf::st_crs(sfg3facilities) <- 4326
 
-sfg3zonelines <- sf::st_cast(sfg3zones,"MULTILINESTRING")
 
 # I could subset points & save as object to increase load speed
 # sfhs <- afrihealthsites::afrihealthsites("cod", datasource='healthsites', plot=FALSE, 
@@ -57,12 +57,12 @@ function(input, output) {
   output$serve_healthsites_map <- renderLeaflet({
 
     
-    sf1 <- sfg3area6080
+    #sf1 <- sfg3area6080
  
     # if zone choice is selected, select rows
     if (input$cboxzones)
     {
-      sf1 <- sf1[which(sf1$zone_sante %in% input$selected_zone_names),]
+      sfg3area6080 <- sfg3area6080[which(sfg3area6080$zone_sante %in% input$selected_zone_names),]
       sfg3zonelines <- sfg3zonelines[which(sfg3zonelines$zone_sante %in% input$selected_zone_names),]
       sfg3facilities <- sfg3facilities[which(sfg3facilities$zone_sante %in% input$selected_zone_names),]      
     } 
@@ -72,8 +72,8 @@ function(input, output) {
     col.regions <- grDevices::colorRampPalette(hcl.colors(n=6, palette="Lajolla"))
  
     #plot areas (smaller)
-    mapplot <- mapview(sf1, zcol='numover60s', 
-                       label=paste(sf1$aire_sante," popn.>60:",sf1$numover60s),
+    mapplot <- mapview(sfg3area6080, zcol='numover60s', 
+                       label=paste(sfg3area6080$aire_sante," popn.>60:",sfg3area6080$numover60s),
                        layer.name="estimated popn >60 (WorldPop)",
                        lwd = 1,
                        col.regions=col.regions,
@@ -137,21 +137,21 @@ function(input, output) {
 
   #########################################################################
   # trying to detect map zoom as a start to keeping it when options changed
-  observeEvent(input$serve_healthsites_map_bounds, {
-
-    #print(input$serve_healthsites_map_bounds)
-
-    #save to a global object so can reset to it
-    zoom_view <<- input$serve_healthsites_map_bounds
-  })
+  # observeEvent(input$serve_healthsites_map_bounds, {
+  # 
+  #   #print(input$serve_healthsites_map_bounds)
+  # 
+  #   #save to a global object so can reset to it
+  #   zoom_view <<- input$serve_healthsites_map_bounds
+  # })
 
   ####################################################################
   # perhaps can just reset zoomed view to NULL when country is changed
   # hurrah! this works, is it a hack ?
-  observe({
-    input$country
-    zoom_view <<- NULL
-  })
+  # observe({
+  #   input$country
+  #   zoom_view <<- NULL
+  # })
 
 
   ###################################
@@ -177,7 +177,7 @@ function(input, output) {
   output$select_zones <- renderUI({
     
     #sort for alphabetical order
-    zone_names <- sort(unique(sfg3zones$zone_sante))
+    zone_names <- sort(unique(sfg3zonelines$zone_sante))
     
     #should I allow multiple regions or just one ?
 

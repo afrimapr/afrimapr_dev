@@ -178,12 +178,23 @@ palname <- "Oslo"
 palname <- "Lajolla"
 mapview(rast6080_10km, col.regions=hcl.colors(n=length(breaks)-1, palette=palname, rev=FALSE), at=breaks )
 
+#saving zone polygons as lines to make vis easier in app
+sfg3zonelines <- sf::st_cast(sfg3zones,"MULTILINESTRING")
 
 #save R objects to use in app
 save(rast6080_10km, file="drc_prototype_app//cod_rast6080_10km.rda")
 save(sfg3area6080, file="drc_prototype_app//sfg3area6080.rda")
 save(sfg3zones, file="drc_prototype_app//sfg3zones.rda")
 save(sfg3facilities, file="drc_prototype_app//sfg3facilities.rda")
+save(sfg3zonelines, file="drc_prototype_app//sfg3zonelines.rda")
+
+# to be able to use here without needing to recreate
+load("drc_prototype_app//sfg3area6080.rda")
+load("drc_prototype_app//sfg3zones.rda")
+load("drc_prototype_app//sfg3zonelines.rda")
+load("drc_prototype_app//sfg3facilities.rda")
+
+
 
 ```
 
