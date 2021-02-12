@@ -231,7 +231,6 @@ tm_shape(sfsen_sur) +
 
 
 
-
 ```{r barplot-beds, eval=FALSE, fig.height=5, fig.width=7.5, fig.show='hold'}
 
 #ggplot2::ggplot(sfsen_sur, aes(y = beds, fill = beds)) +
@@ -244,3 +243,57 @@ ggplot2::ggplot(sfsen_sur, aes(x = beds, fill = beds)) +
 
 ```
 
+```{r hospital-services, eval=FALSE, fig.height=5, fig.width=7.5, fig.show='hold'}
+
+# 2021-01-12 Mark wants to know
+
+# Of the 35 hospitals mapped X had an emergency serice
+# Of the 35 hospitals mapped X had an x-ray and or an imaging serice
+# Of the 35 hospitals mapped X had an ultrasound serice
+# Of the 35 hospitals mapped X received electricity from the power grid
+# Of the 35 hospitals mapped X received water from water works
+
+#str(sfsen_sur)
+ # $ name        : chr  "Centre de santé de Rufisque" 
+ # $ building            : chr  "Doctors" "Doctors" "Hospital" "Doctors" ...
+ # $ health_amenity:type : chr  "Doctor Pharmacy Dentist Laboratory Optometry/Ophtalmology Birthing center" "Doctor Pharmacy Laboratory Rehabilitation Birthing center" "Pharmacy Clinic Alternative Laboratory" "Doctor Pharmacy Dentist Laboratory Birthing center" ...
+ # $ healthcare:equipment: chr  "Ultrasound X-Ray Operating Theater Laboratory Imaging Equipment Emergency Department" "Ultrasound X-Ray Laboratory Imaging Equipment Emergency Department" "MRI Laboratory Imaging Equipment Emergency Department" "Laboratory" ...
+ # $ emergency           : chr  "Yes" "Yes" "Yes" "No" ...
+ # $ insurance:health    : chr  "Public Private" "Public Private" "Private" ...
+ # $ staff_count:doctors : int  4 8 4 2 NA 30 NA 2 NA 9 ...
+ # $ staff_count:nurses  : int  10 7 22 2 NA 10 NA 3 NA 4 ...
+ # $ beds                : int  40 44 16 15 NA 15 NA NA NA 10 ...
+ # $ electricity         : chr  "Power grid" "Power grid" "Power grid" "Power grid" ...
+ # $ water_source        : chr  "Water works" "Water works" "Water works" "Water works" ...
+
+#select hospitals
+# calc percent emergency
+dfsen_sur
+
+
+```
+
+```{r hospital-operating-theatre, eval=FALSE, fig.height=5, fig.width=7.5, fig.show='hold'}
+# 2021-02-12 Mark request
+# https://github.com/healthsites/emergency-health-data/wiki#maternity-care
+# same style as above but focused on 'operating theatre, Paediatric surgery or ultrasound'..?
+
+#may want to use earlier datafile that I think had services in separate columns
+
+sfsen_sur_hos <- dplyr::filter(sfsen_sur, building=="Hospital")
+
+sfsen_sur_hos <- dplyr::mutate(sfsen_sur_hos, operating = grepl("Operating",`healthcare:equipment`))
+
+tmap::tm_shape(sfsen_adm0) +
+    tm_borders("black", lwd = .5) +
+  
+    tm_shape(sfsen_sur_hos) +
+
+    # tm_symbols( alpha=0.6, col = "operating", scale=0.7, title.col="Operating\ntheatre", palette=c("white","blue","red")) + 
+
+    tm_symbols( shape="operating", shapes= c(3,21), alpha=0.6, col='darkgreen', title.shape="Operating\ntheatre") + 
+    #tm_add_legend(type="symbol", shape=3, labels = "no data", size = 0.5, border.lwd = 0.5, col = "grey") +  
+    tm_layout(main.title='Operating theatre data collected 2020', main.title.size=1) #main.title goes above map
+
+
+```
