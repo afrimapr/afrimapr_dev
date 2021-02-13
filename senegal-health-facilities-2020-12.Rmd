@@ -3,7 +3,8 @@ title: "Senegal HOT microgrant analyses"
 #output: html_document
 author: "Andy South @afrimapr"
 date: "`r Sys.Date()`"
-output: pdf_document
+#output: pdf_document
+output: word_document
 ---
 
 ```{r setup, include=FALSE}
@@ -15,6 +16,21 @@ library(dplyr)
 library(ggplot2)
 
 ```
+
+```{r, eval=TRUE, include=FALSE}
+# set to eval=TRUE to make figs for submission
+# in YAML set output: word_document
+# word doc summarises & figs get stored in folder
+
+opts_chunk$set(dev="tiff",
+               #dev.args=list(compression="lzw"),
+               dpi=300, 
+               cache=FALSE,
+               fig.path='2021-02-senegal-plots/',
+               fig.width=8.5,
+               fig.height=10)
+```
+
 
 To compare newly collected data on Senegal health facility locations with that from healthsites.io, WHO. 
 Part of HOT microgrant.
@@ -83,7 +99,7 @@ sfsen_sur <- filter(sfsen_sur, building != "Pharmacy")
 \pagebreak
 Number of beds per facility in survey data and before.
 
-```{r survey-tmap-beds, eval=TRUE, fig.height=4.5, fig.width=7.5, fig.show='hold'}
+```{r survey2020-beds, eval=TRUE, fig.height=4.5, fig.width=7.5, fig.show='hold'}
 
 library(tmap)
 library(afriadmin)
@@ -103,12 +119,15 @@ tm_shape(sfsen_sur) +
     tm_symbols(col = "building", alpha=0.8, size = "beds", size.max=420, 
                scale=3, sizes.legend=c(10,100,400), title.col="") +
 tm_add_legend(type="symbol", shape=3, labels = "no bed data", size = 0.5, border.lwd = 0.5, col = "grey") +
-    tm_layout(main.title='Bed data collected 2020', main.title.size=1) #main.title goes above map
+    tm_scale_bar(breaks=c(0,50,100), position=c("LEFT", "BOTTOM")) +
+    tm_layout(main.title='Bed data collected 2020', main.title.size=1,
+              legend.bg.color=TRUE,
+              title="map by @afrimapr", title.color="darkgrey", title.size=0.8, title.position=c("RIGHT","BOTTOM")) #main.title goes above map
 
 ```
 
 
-```{r osmb4-tmap-beds, eval=TRUE, fig.height=4.5, fig.width=7.5, fig.show='hold'}
+```{r osmb4-beds, eval=TRUE, fig.height=4.5, fig.width=7.5, fig.show='hold'}
 
 # healthsites data before
 tmap::tm_shape(sfsen_adm0) +
@@ -121,7 +140,10 @@ tm_shape(sfsen_hs) +
     tm_symbols(col = "amenity", alpha=0.8, size = "beds", size.max=420, 
                scale=3, sizes.legend=c(10,100,400), title.col="") +
 tm_add_legend(type="symbol", shape=3, labels = "no bed data", size = 0.5, border.lwd = 0.5, col = "grey") +
-    tm_layout(main.title='Bed data in OSM before 2020', main.title.size=1) #main.title goes above map
+    tm_scale_bar(breaks=c(0,50,100), position=c("LEFT", "BOTTOM")) +
+    tm_layout(main.title='Bed data in OSM before 2020', main.title.size=1,
+              legend.bg.color=TRUE,
+              title="map by @afrimapr", title.color="darkgrey", title.size=0.8, title.position=c("RIGHT","BOTTOM")) #main.title goes above map
 
 ```
 
@@ -129,7 +151,7 @@ tm_add_legend(type="symbol", shape=3, labels = "no bed data", size = 0.5, border
 \pagebreak
 Beds, zoomed in on Dakar & St Louis
 
-```{r survey-tmap-beds-zoom, eval=TRUE, fig.height=4.5, fig.width=7.5, fig.show='hold'}
+```{r survey2020-beds-zoom, eval=TRUE, fig.height=4.5, fig.width=7.5, fig.show='hold'}
 
 #bbox for Dhakar
 bbox <- st_bbox(c(xmin = -17.7, xmax = -17.1, ymax = 14.9, ymin = 14.5), crs = st_crs(4326))
@@ -147,11 +169,15 @@ tm_shape(sfsen_sur) +
     tm_symbols(col = "building", alpha=0.8, size = "beds", size.max=420, 
                scale=3, sizes.legend=c(10,100,400), title.col="") +
 tm_add_legend(type="symbol", shape=3, labels = "no bed data", size = 0.5, border.lwd = 0.5, col = "grey") +
-    tm_layout(main.title='Bed data collected 2020, Dakar & St Louis', main.title.size=1) #main.title goes above map
+    tm_scale_bar(breaks=c(0,20,40), position=c("LEFT", "BOTTOM")) +
+    tm_scale_bar(breaks=c(0,50,100), position=c("LEFT", "BOTTOM")) +
+    tm_layout(main.title='Bed data collected 2020, Dakar & St Louis', main.title.size=1,
+              legend.bg.color=TRUE,
+              title="map by @afrimapr", title.color="darkgrey", title.size=0.8, title.position=c("RIGHT","BOTTOM")) #main.title goes above map
 
 ```
 
-```{r osmb4-tmap-beds-zoom, eval=TRUE, fig.height=4.5, fig.width=7.5, fig.show='hold'}
+```{r osmb4-beds-zoom, eval=TRUE, fig.height=4.5, fig.width=7.5, fig.show='hold'}
 
 # healthsites data before
 tmap::tm_shape(sfsen_adm0, bbox=bbox) +
@@ -164,14 +190,16 @@ tm_shape(sfsen_hs) +
     tm_symbols(col = "amenity", alpha=0.8, size = "beds", size.max=420, 
                scale=3, sizes.legend=c(10,100,400), title.col="") +
 tm_add_legend(type="symbol", shape=3, labels = "no bed data", size = 0.5, border.lwd = 0.5, col = "grey") +
-    tm_layout(main.title='Bed data in OSM before 2020, Dakar & St Louis', main.title.size=1) #main.title goes above map
+    tm_scale_bar(breaks=c(0,20,40), position=c("LEFT", "BOTTOM")) +
+    tm_layout(main.title='Bed data in OSM before 2020, Dakar & St Louis', main.title.size=1,
+              title="map by @afrimapr", title.color="darkgrey", title.size=0.8, title.position=c("RIGHT","BOTTOM")) #main.title goes above map
 
 ```
 
 \pagebreak
 Doctors
 
-```{r survey-tmap-doctors, eval=TRUE, fig.height=4.5, fig.width=7.5, fig.show='hold'}
+```{r survey2020-doctor-numbers, eval=TRUE, fig.height=4.5, fig.width=7.5, fig.show='hold'}
 
 
 tmap::tm_shape(sfsen_adm0) +
@@ -184,13 +212,16 @@ tm_shape(sfsen_sur) +
     tm_symbols(col = "building", alpha=0.8, size = "staff_count:doctors", size.max=120, 
                scale=3, sizes.legend=c(1,10,100), title.col="") +
 tm_add_legend(type="symbol", shape=3, labels = "no data", size = 0.5, border.lwd = 0.5, col = "grey") +
-    tm_layout(main.title='Doctor number data collected 2020', main.title.size=1) #main.title goes above map
+    tm_scale_bar(breaks=c(0,50,100), position=c("LEFT", "BOTTOM")) +
+    tm_layout(main.title='Doctor number data collected 2020', main.title.size=1,
+              legend.bg.color=TRUE,
+              title="map by @afrimapr", title.color="darkgrey", title.size=0.8, title.position=c("RIGHT","BOTTOM")) #main.title goes above map
 
 ```
 
 Nurses
 
-```{r survey-tmap-nurses, eval=TRUE, fig.height=4.5, fig.width=7.5, fig.show='hold'}
+```{r survey2020-nurse-numbers, eval=TRUE, fig.height=4.5, fig.width=7.5, fig.show='hold'}
 
 tmap::tm_shape(sfsen_adm0) +
     tm_borders("black", lwd = .5) +
@@ -202,14 +233,16 @@ tm_shape(sfsen_sur) +
     tm_symbols(col = "building", alpha=0.8, size = "staff_count:nurses", size.max=300, 
                scale=3, sizes.legend=c(1,10,100,500), title.col="") +
 tm_add_legend(type="symbol", shape=3, labels = "no data", size = 0.5, border.lwd = 0.5, col = "grey") +
-    tm_layout(main.title='Nurse number data collected 2020', main.title.size=1) #main.title goes above map
+    tm_scale_bar(breaks=c(0,50,100), position=c("LEFT", "BOTTOM")) +
+    tm_layout(main.title='Nurse number data collected 2020', main.title.size=1,
+              title="map by @afrimapr", title.color="darkgrey", title.size=0.8, title.position=c("RIGHT","BOTTOM")) #main.title goes above map
 
 ```
 
 \pagebreak
 Emergency 
 
-```{r survey-tmap-emergency, eval=TRUE, fig.height=4.5, fig.width=7.5, fig.show='hold'}
+```{r survey2020-emergency-capacity, eval=TRUE, fig.height=4.5, fig.width=7.5, fig.show='hold'}
 
 #todo in tmap can I use repel to stop points being on top of each other
 
@@ -225,7 +258,10 @@ tm_shape(sfsen_sur) +
     #tm_symbols(shape = "building", alpha=0.6, col = "emergency", scale=1, title.col="") +
     tm_symbols(shape = "building", alpha=0.6, col = "emergency", scale=0.7, title.col="Emergency\ncapacity", palette=c("white","blue","red")) + 
     #tm_add_legend(type="symbol", shape=3, labels = "no data", size = 0.5, border.lwd = 0.5, col = "grey") +  
-    tm_layout(main.title='Emergency capacity data collected 2020', main.title.size=1) #main.title goes above map
+    tm_scale_bar(breaks=c(0,50,100), position=c("LEFT", "BOTTOM")) +
+    tm_layout(main.title='Emergency capacity data collected 2020', main.title.size=1,
+              legend.bg.color=TRUE,
+              title="map by @afrimapr", title.color="darkgrey", title.size=0.8, title.position=c("RIGHT","BOTTOM")) #main.title goes above map
 
 ```
 
@@ -273,7 +309,7 @@ dfsen_sur
 
 ```
 
-```{r hospital-operating-theatre, eval=FALSE, fig.height=5, fig.width=7.5, fig.show='hold'}
+```{r survey2020-hospital-operating-theatre, eval=TRUE, fig.height=5, fig.width=7.5, fig.show='hold'}
 # 2021-02-12 Mark request
 # https://github.com/healthsites/emergency-health-data/wiki#maternity-care
 # same style as above but focused on 'operating theatre, Paediatric surgery or ultrasound'..?
@@ -282,18 +318,57 @@ dfsen_sur
 
 sfsen_sur_hos <- dplyr::filter(sfsen_sur, building=="Hospital")
 
-sfsen_sur_hos <- dplyr::mutate(sfsen_sur_hos, operating = grepl("Operating",`healthcare:equipment`))
+sfsen_sur_hos <- dplyr::mutate(sfsen_sur_hos, operating = grepl("Operating",`healthcare:equipment`),
+                                              icu = grepl("Intensive",`healthcare:equipment`),
+                                              ultrasound = grepl("Ultrasound",`healthcare:equipment`))
+
 
 tmap::tm_shape(sfsen_adm0) +
     tm_borders("black", lwd = .5) +
   
     tm_shape(sfsen_sur_hos) +
 
-    # tm_symbols( alpha=0.6, col = "operating", scale=0.7, title.col="Operating\ntheatre", palette=c("white","blue","red")) + 
-
-    tm_symbols( shape="operating", shapes= c(3,21), alpha=0.6, col='darkgreen', title.shape="Operating\ntheatre") + 
+    tm_symbols( shape="operating", shapes= c(4,21), alpha=0.6, size=0.5, col='darkgreen', title.shape="Operating\ntheatre") + 
     #tm_add_legend(type="symbol", shape=3, labels = "no data", size = 0.5, border.lwd = 0.5, col = "grey") +  
-    tm_layout(main.title='Operating theatre data collected 2020', main.title.size=1) #main.title goes above map
+    #main.title goes above map, title.position: uppercase RIGHT & BOTTOM ignore margins
+    tm_scale_bar(breaks=c(0,50,100), position=c("LEFT", "BOTTOM")) +
+    tm_layout(main.title='Operating theatre data collected 2020', main.title.size=1,
+              title="map by @afrimapr", title.color="darkgrey", title.size=0.8, title.position=c("RIGHT","BOTTOM")) 
 
+```
+
+```{r survey2020-hospital-ultrasound, eval=TRUE, fig.height=5, fig.width=7.5, fig.show='hold'}
+
+#using df created in previous chunk
+
+tmap::tm_shape(sfsen_adm0) +
+    tm_borders("black", lwd = .5) +
+  
+    tm_shape(sfsen_sur_hos) +
+
+    tm_symbols( shape="ultrasound", shapes= c(4,21), alpha=0.6, size=0.5, col='darkgreen', title.shape="Ultrasound") + 
+    #tm_add_legend(type="symbol", shape=3, labels = "no data", size = 0.5, border.lwd = 0.5, col = "grey") +  
+    #main.title goes above map, title.position: uppercase RIGHT & BOTTOM ignore margins
+    tm_scale_bar(breaks=c(0,50,100), position=c("LEFT", "BOTTOM")) +
+    tm_layout(main.title='Ultrasound data collected 2020', main.title.size=1,
+              title="map by @afrimapr", title.color="darkgrey", title.size=0.8, title.position=c("RIGHT","BOTTOM")) 
+
+```
+
+```{r survey2020-hospital-icu, eval=TRUE, fig.height=5, fig.width=7.5, fig.show='hold'}
+
+#using df created in previous chunk
+
+tmap::tm_shape(sfsen_adm0) +
+    tm_borders("black", lwd = .5) +
+  
+    tm_shape(sfsen_sur_hos) +
+
+    tm_symbols( shape="icu", shapes= c(4,21), alpha=0.6, size=0.5, col='darkgreen', title.shape="Intensive Care Unit") + 
+    #tm_add_legend(type="symbol", shape=3, labels = "no data", size = 0.5, border.lwd = 0.5, col = "grey") +  
+    #main.title goes above map, title.position: uppercase RIGHT & BOTTOM ignore margins
+    tm_scale_bar(breaks=c(0,50,100), position=c("LEFT", "BOTTOM")) +
+    tm_layout(main.title='ICU data collected 2020', main.title.size=1,
+              title="map by @afrimapr", title.color="darkgrey", title.size=0.8, title.position=c("RIGHT","BOTTOM")) 
 
 ```
