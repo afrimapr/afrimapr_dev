@@ -7,6 +7,9 @@ output: pdf_document
 #output: word_document
 ---
 
+#TO OUTPUT HIGH QUALITY TIFFS set to word above & eval=TRUE the 2nd chunk
+
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE)
 
