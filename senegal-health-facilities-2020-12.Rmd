@@ -3,11 +3,37 @@ title: "Senegal HOT microgrant analyses"
 #output: html_document
 author: "Andy South @afrimapr"
 date: "`r Sys.Date()`"
-output: pdf_document
-#output: word_document
+#output: pdf_document
+output: word_document
+#TO OUTPUT HIGH QUALITY TIFFS set to word above & eval=TRUE the 2nd chunk
 ---
 
-#TO OUTPUT HIGH QUALITY TIFFS set to word above & eval=TRUE the 2nd chunk
+To compare newly collected data on Senegal health facility locations with that from healthsites.io, WHO. 
+Part of HOT microgrant.
+November 2020
+
+High quality tiff images available here : https://github.com/afrimapr/afrimapr_dev/tree/master/2021-02-senegal-plots
+
+Note that for the data in OSM/healthsites before this collection :     
+
+**197** hospital locations in Senegal from OSM using **amenity** =='hospital'. 
+Many of the names make them look like they are not hospitals.     
+
+If instead look for hospital in the **healthcare** tag get **41** hospitals which seems more reasonable.     
+     
+     
+**health_amenity_type** in a handful of cases has info on services
+e.g. ultrasound & one operating theatre.   
+
+**specialty** has information on e.g. paediatrics in a couple of cases.   
+
+
+Currently seemingly not possible to tell difference between absence of a service & absence of data.   
+
+
+Plenty of potential to standardise & improve how the data are stored even within current OSM setup.
+
+
 
 
 ```{r setup, include=FALSE}
@@ -20,7 +46,8 @@ library(ggplot2)
 
 ```
 
-```{r, eval=FALSE, include=FALSE}
+```{r, eval=TRUE, include=FALSE}
+#```{r, eval=FALSE, include=FALSE}
 # set to eval=TRUE to make figs for submission
 # in YAML set output: word_document
 # word doc summarises & figs get stored in folder
@@ -34,10 +61,6 @@ opts_chunk$set(dev="tiff",
                fig.height=10)
 ```
 
-
-To compare newly collected data on Senegal health facility locations with that from healthsites.io, WHO. 
-Part of HOT microgrant.
-November 2020
 
 
 ```{r read-data, eval=TRUE}
@@ -309,8 +332,47 @@ ggplot2::ggplot(sfsen_sur, aes(x = beds, fill = beds)) +
 # calc percent emergency
 dfsen_sur
 
+```
+
+
+\pagebreak
+
+```{r osmb4-hospital-operating, eval=TRUE, fig.height=4.5, fig.width=7.5, fig.show='hold'}
+
+#comparing with healthsites data
+
+sfsen_hs_hos <- dplyr::filter(sfsen_hs, amenity=="hospital")
+
+#nrow(sfsen_hs_hos)
+#197 hospital locations in Senegal from OSM using amenity=='hospital'
+#and many of the names make them look like they are not hospitals
+
+#41 searching for hospital in the healthcare tag
+sfsen_hs_healthcare_hos <- dplyr::filter(sfsen_hs, grepl("hospital",healthcare))
+
+#health_amenity_type in a handful of cases has info on e.g. ultrasound & one operating theatre
+
+sfsen_hs_healthcare_hos <- dplyr::mutate(sfsen_hs_healthcare_hos, 
+                                            operating = grepl("operating",health_amenity_type),
+                                            icu = grepl("intensive",health_amenity_type),
+                                            ultrasound = grepl("ultrasound",health_amenity_type))
+
+tmap::tm_shape(sfsen_adm0) +
+    tm_borders("black", lwd = .5) +
+  
+    tm_shape(sfsen_hs_healthcare_hos) +
+
+    tm_symbols( shape="operating", shapes= c(4,21), alpha=0.6, size=0.5, col='green4', title.shape="Operating\ntheatre", labels=c("no data","yes")) + 
+    #tm_add_legend(type="symbol", shape=3, labels = "no data", size = 0.5, border.lwd = 0.5, col = "grey") +  
+    #main.title goes above map, title.position: uppercase RIGHT & BOTTOM ignore margins
+    tm_scale_bar(breaks=c(0,50,100), position=c("LEFT", "BOTTOM")) +
+    tm_layout(main.title='Operating theatre data in OSM before 2020', main.title.size=1,
+              title="map by @afrimapr", title.color="darkgrey", title.size=0.8, title.position=c("RIGHT","BOTTOM")) 
 
 ```
+
+
+
 
 ```{r survey2020-hospital-operating-theatre, eval=TRUE, fig.height=4.5, fig.width=7.5, fig.show='hold'}
 # 2021-02-12 Mark request
@@ -331,11 +393,31 @@ tmap::tm_shape(sfsen_adm0) +
   
     tm_shape(sfsen_sur_hos) +
 
-    tm_symbols( shape="operating", shapes= c(4,21), alpha=0.6, size=0.5, col='darkgreen', title.shape="Operating\ntheatre") + 
-    #tm_add_legend(type="symbol", shape=3, labels = "no data", size = 0.5, border.lwd = 0.5, col = "grey") +  
+    tm_symbols( shape="operating", shapes= c(4,21), alpha=0.6, size=0.5, col='green4', title.shape="Operating\ntheatre", labels=c("no data","yes")) + 
+
     #main.title goes above map, title.position: uppercase RIGHT & BOTTOM ignore margins
     tm_scale_bar(breaks=c(0,50,100), position=c("LEFT", "BOTTOM")) +
     tm_layout(main.title='Operating theatre data collected 2020', main.title.size=1,
+              title="map by @afrimapr", title.color="darkgrey", title.size=0.8, title.position=c("RIGHT","BOTTOM")) 
+
+```
+
+\pagebreak
+
+```{r osmb4-hospital-ultrasound, eval=TRUE, fig.height=4.5, fig.width=7.5, fig.show='hold'}
+
+#using data from earlier chunk
+
+tmap::tm_shape(sfsen_adm0) +
+    tm_borders("black", lwd = .5) +
+  
+    tm_shape(sfsen_hs_healthcare_hos) +
+
+    tm_symbols( shape="ultrasound", shapes= c(4,21), alpha=0.6, size=0.5, col='turquoise4', title.shape="Ultrasound", labels=c("no data","yes")) + 
+
+    #main.title goes above map, title.position: uppercase RIGHT & BOTTOM ignore margins
+    tm_scale_bar(breaks=c(0,50,100), position=c("LEFT", "BOTTOM")) +
+    tm_layout(main.title='Ultrasound data in OSM before 2020', main.title.size=1,
               title="map by @afrimapr", title.color="darkgrey", title.size=0.8, title.position=c("RIGHT","BOTTOM")) 
 
 ```
@@ -349,11 +431,29 @@ tmap::tm_shape(sfsen_adm0) +
   
     tm_shape(sfsen_sur_hos) +
 
-    tm_symbols( shape="ultrasound", shapes= c(4,21), alpha=0.6, size=0.5, col='darkgreen', title.shape="Ultrasound") + 
-    #tm_add_legend(type="symbol", shape=3, labels = "no data", size = 0.5, border.lwd = 0.5, col = "grey") +  
+    tm_symbols( shape="ultrasound", shapes= c(4,21), alpha=0.6, size=0.5, col='turquoise4', title.shape="Ultrasound", labels=c("no data","yes")) + 
+
     #main.title goes above map, title.position: uppercase RIGHT & BOTTOM ignore margins
     tm_scale_bar(breaks=c(0,50,100), position=c("LEFT", "BOTTOM")) +
     tm_layout(main.title='Ultrasound data collected 2020', main.title.size=1,
+              title="map by @afrimapr", title.color="darkgrey", title.size=0.8, title.position=c("RIGHT","BOTTOM")) 
+
+```
+\pagebreak
+
+```{r osmb4-hospital-icu, eval=TRUE, fig.height=4.5, fig.width=7.5, fig.show='hold'}
+
+
+tmap::tm_shape(sfsen_adm0) +
+    tm_borders("black", lwd = .5) +
+  
+    tm_shape(sfsen_hs_healthcare_hos) +
+
+    tm_symbols( shape="icu", shapes= c(4,21), alpha=0.6, size=0.5, col='magenta4', title.shape="Intensive Care Unit", labels=c("no data","yes")) + 
+
+    #main.title goes above map, title.position: uppercase RIGHT & BOTTOM ignore margins
+    tm_scale_bar(breaks=c(0,50,100), position=c("LEFT", "BOTTOM")) +
+    tm_layout(main.title='ICU data in OSM before 2020', main.title.size=1,
               title="map by @afrimapr", title.color="darkgrey", title.size=0.8, title.position=c("RIGHT","BOTTOM")) 
 
 ```
@@ -367,7 +467,7 @@ tmap::tm_shape(sfsen_adm0) +
   
     tm_shape(sfsen_sur_hos) +
 
-    tm_symbols( shape="icu", shapes= c(4,21), alpha=0.6, size=0.5, col='darkgreen', title.shape="Intensive Care Unit") + 
+    tm_symbols( shape="icu", shapes= c(4,21), alpha=0.6, size=0.5, col='magenta4', title.shape="Intensive Care Unit", labels=c("no data","yes")) + 
     #tm_add_legend(type="symbol", shape=3, labels = "no data", size = 0.5, border.lwd = 0.5, col = "grey") +  
     #main.title goes above map, title.position: uppercase RIGHT & BOTTOM ignore margins
     tm_scale_bar(breaks=c(0,50,100), position=c("LEFT", "BOTTOM")) +
