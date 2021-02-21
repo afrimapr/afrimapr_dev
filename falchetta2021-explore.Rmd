@@ -1,0 +1,115 @@
+# falchetta2021-explore.Rmd
+
+# andy south 2021-02-20
+
+# to explore data from https://www.pnas.org/content/117/50/31760
+# Falchetta2021 Planning universal accessibility to public health care in sub-Saharan Africa
+# particularly classification into 4 tiers
+
+<!-- we categorize health care facilities into four distinct tiers, namely dispensaries -->
+<!-- and local health posts (Tier 1), health centers (Tier 2), provinceand -->
+<!-- regional-level hospitals (Tier 3), and national and central hospitals (Tier 4). This is  -->
+<!-- consistent with standard health care facilities classification in developing countries (see,  -->
+<!-- e.g., ref. 27 and Materials and Methods). -->
+
+<!-- Given the heterogeneity in the naming standard across countries of SSA, a -->
+<!-- manual labeling to classify existing public health care facilities is necessary. -->
+<!-- This is achieved by extracting unique facility-type names (which are recurrent -->
+<!-- within countries but diverse across countries), assigning a tier value between -->
+<!-- one and four depending on the national classification standards for public -->
+<!-- health care facilities while sticking as closely as possible to the general -->
+<!-- convention -->
+
+<!-- Tier 1 facilities data (i.e., dispensaries) are unavailable for Niger, Guinea-Bissau, and eastern -->
+<!-- Angola due to irretrievability, as discussed in Maina et al. (27). -->
+
+
+# data & analyses downloaded from https://zenodo.org/record/3757084#.YDD3euj7SUk
+
+# saved locally here C:\\Dropbox\\_afrimapr\\health-facilities-africa\\falchetta2020-code\\
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, message=FALSE)
+
+library(afrihealthsites)
+library(sf)
+library(knitr) #for kable
+library(dplyr)
+library(ggplot2)
+
+```
+
+
+```{r read-data, eval=TRUE}
+
+datafolder <- 'C:\\Dropbox\\_afrimapr\\health-facilities-africa\\falchetta2020-code\\'
+
+# facility points, including Tier classification are saved in a shapefile by Falchetta
+# read facilities into sf
+# sftiers = sf::read_sf(paste0(datafolder, "healthcare.shp"))
+# names(sftiers)
+#"Country"  "ft"       "Admin1"   "Fcltynm"  "Fcltyty"  "Ownrshp"  "LLsourc"  "Tier" "geometry"
+
+
+# from data_preparation_and_figures.R
+# Import classified version 
+parser_healthcare_types <- readxl::read_excel(paste0(datafolder, "parser_healthcare_types.xlsx")) %>% dplyr::select(-...1)
+
+# names(parser_healthcare_types)
+# [1] "ft"      "Country" "Tier" 
+# 385 rows including country
+
+# Question I asked Faduma last week, are there any facility types (ft) that are classed into different tiers in different countries ?
+
+parser_healthcare_types %>% dplyr::group_by(ft) %>% unique()
+
+dftype_tiers <- parser_healthcare_types %>% dplyr::group_by(ft) %>% summarise(num_tiers = n_distinct(Tier))
+
+#yes there are some (9) that appear in 2 tiers in different countries
+df2tiers <- dplyr::filter(dftype_tiers, num_tiers > 1)
+
+#TODO find which tiers & countries they appear in
+#   ft                       num_tiers
+# 1 Centre de Santé Intégré          2
+# 2 Centre Médico-social             2
+# 3 Clinic                           2
+# 4 General Hospital                 2
+# 5 Health Centre                    2
+# 6 Hôpital                          2
+# 7 Hôpital Général                  2
+# 8 Primary Health Care Unit         2
+# 9 Referral Hospital                2
+
+df2tiers_countries <- dplyr::left_join(df2tiers, parser_healthcare_types, by="ft")
+
+df2tiers_countries
+# # A tibble: 73 x 4
+#    ft                      num_tiers Country        Tier
+#  1 Centre de Santé Intégré         2 Cameroon          2
+#  2 Centre de Santé Intégré         2 Congo             1
+#  3 Centre Médico-social            2 Benin             2
+#  4 Centre Médico-social            2 Cote d'Ivoire     1
+#  5 Centre Médico-social            2 Togo              2
+#  6 Clinic                          2 Benin             2
+#  7 Clinic                          2 Botswana          2
+#  8 Clinic                          2 Cameroon          2
+#  9 Clinic                          2 Eritrea           2
+# 10 Clinic                          2 eSwatini          2
+
+
+# e.g. Clinic is Tier2 in 17 countries & Tier1 in Gambia
+# General Hospital is Tier3 in Angola & Nigeria, but Tier4 in Ethiopia, Ghana & Mauritania
+# Referral Hospital is Tier4 in bunch of countries, but Tier3 in Rwanda
+
+#this is how Falchetta joins the tiers onto the Maina(2019) data
+#merger = merge(healthcare_facilities, parser_healthcare_types, by=c("Country", "ft"))
+
+#test for whole dataset in afrihealthsites
+sfall <- afrihealthsites::afrihealthsites('all', datasource = 'who', plot=FALSE)
+
+#TODO add this & the parser_healthcare_types object to afrihealthsites package
+sfall2 <- dplyr::left_join(sfall, parser_healthcare_types, by=c("Country", "Facility type" = "ft"))
+
+
+```
