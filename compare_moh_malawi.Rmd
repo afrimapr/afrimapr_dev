@@ -1,0 +1,16 @@
+---
+title: "compare_moh_malawi"
+output: html_document
+---
+  
+To compare moh data from Malawi downloaded now with Kemri collated data from 2019.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(afrihealthsites)
+library(knitr) #for kable
+library(dplyr)
+library(ggplot2)
+
+```

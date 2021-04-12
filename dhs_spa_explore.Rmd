@@ -14,12 +14,95 @@ library(rdhs)
 library(afrihealthsites)
 #library(dplyr)
 
-#set my dhs ID - it will then ask for passwd
+#set my dhs ID - it will then ask for passwd : B
 
 set_rdhs_config(email = "andy.south@lstmed.ac.uk",
                 project = "afrimapr : creating R building-blocks to ease use of open health data in Africa",
                 config_path = "rdhs.json",
                 global = FALSE)
+
+
+```
+
+```{r malawi_spa_2013, eval=FALSE, echo=FALSE, asis=TRUE}
+
+# from Web seems there is a Malawi SPA from 2013 :
+# https://dhsprogram.com/data/dataset/Malawi_SPA_2013.cfm?flag=0
+# seems that this doesn't appear in the query from rdhs
+# webpage indicates 977 facilities surveyed
+# this is apparently the geographic data (.shp) from the 2013-14 SPA
+# MWGE6IFLSR.ZIP
+
+#from here suggestion download from the ID: https://github.com/ropensci/rdhs/issues/74
+
+#trying to repeat for the Malawi 2013-14 SPA survey
+g <- get_datasets("MWGE6IFLSR.ZIP")
+r <- readRDS(g$MWGE6IFLSR)
+head(r@data,0)
+
+# These requested datasets are not available from your DHS login credentials:
+# MWGE6IFLSR.ZIP
+# Please request permission for these datasets from the DHS website to be able to download them
+
+# TODO is the issue that I didn't request shapefiles permission from DHS ?
+
+#try this instead
+#fileType='FC' for Facility
+datasets <- dhs_datasets(countryIds = c("MW"), surveyYearStart = 2013, surveyType='SPA', fileType = 'FC', fileFormat = 'Flat')
+
+#produces 2 rows that look mostly same
+
+# download datasets
+downloads <- get_datasets(datasets$FileName)
+
+# Downloading: 
+# Malawi 2013 SPA Facility Flat ASCII data (.dat) [MWFC6JFLSR.ZIP]
+# Dataset download finished
+# Downloading: 
+# Malawi 2013 SPA Facility Flat ASCII data (.dat) [MWFC6KFLSP.ZIP]
+# Dataset download finished
+
+spamw <- readRDS(downloads[1])
+#Error in readRDS(downloads[1]) : bad 'file' argument
+
+#seems to be problem with the file string created by rdhs
+
+downloads[1]
+#$MWFC6JFLSR
+#[1] "C:\\Users\\ANDY~1.SOU\\AppData\\Local/Andy.South/rdhs/Cache/datasets/MWFC6JFLSR.rds"
+
+#file.exists(downloads[1])
+#Error in file.exists(downloads[1]) : invalid 'file' argument
+
+path <- "C:\\Users\\andy.south\\AppData\\Local\\Andy.South\\rdhs\\Cache\\datasets\\"
+filename <- "MWFC6JFLSR.rds"
+
+filename <- paste0(path, filename)
+
+spamw <- readRDS(filename)
+
+#cool does read in now
+
+#has columns for facility ids, facility type & services
+#column names are codes, with labels that are more informative
+#seemingly not lat longs
+
+#the files are different, same num rows so prob for same facilities
+filename2 <- "MWFC6KFLSP.rds"
+filename2 <- paste0(path, filename2)
+spamw2 <- readRDS(filename2)
+
+# try looking at this for getting shapefiles
+
+# Here is rdhs vignette on downloading shapefiles (but seems to be boundaries) :
+# https://cran.r-project.org/web/packages/rdhs/vignettes/boundaries.html
+
+# datasets$SurveyId
+# [1] "MW2013SPA" "MW2013SPA"
+
+#this fails to download anything
+#sfb <- download_boundaries(surveyId = "MW2013SPA", method = "sf")
+
 
 
 ```

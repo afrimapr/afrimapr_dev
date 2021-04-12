@@ -82,19 +82,32 @@ compare_hs_sources("kenya", datasources=c('who',kenya_file),
 Plot counts of facility types from MoH data
 ```{r ken_moh_facility_types, echo=FALSE, warnings=FALSE, asis=TRUE, fig.width=9, fig.height=9}
 
-#
+# Facility_type_category
 ggken <- facility_types("kenya", 
                         datasource=kenya_file,
                         type_column = 'Facility_type_category',
                         lonlat_columns = NULL) #specifying that there are no coords
 plot(ggken)
 
-# defined facility levels
+# Keph level, defined facility levels
 ggken <- facility_types("kenya", 
                         datasource=kenya_file,
                         type_column = "Keph level",
                         lonlat_columns = NULL) #specifying that there are no coords
 plot(ggken)
+
+# Owner type = public/private
+ggken <- facility_types("kenya", 
+                        datasource=kenya_file,
+                        type_column = "Owner type",
+                        lonlat_columns = NULL) #specifying that there are no coords
+plot(ggken)
+
+as.data.frame(table(dfken$`Owner type`))
+# 1       Faith Based Organization 1035
+# 2             Ministry of Health 5875
+# 3 Non-Governmental Organizations  366
+# 4               Private Practice 5102
 
 
 #number of beds - but the default plot doesn't cope well with the numeric data
@@ -107,5 +120,9 @@ plot(ggken)
 
 
 ```
+
+
+#Note that the file doesn't have coordinates
+#but it does have sub-county (?admin3)
 
 

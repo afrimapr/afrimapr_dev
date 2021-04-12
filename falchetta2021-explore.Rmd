@@ -64,7 +64,10 @@ parser_healthcare_types <- readxl::read_excel(paste0(datafolder, "parser_healthc
 
 parser_healthcare_types %>% dplyr::group_by(ft) %>% unique()
 
-dftype_tiers <- parser_healthcare_types %>% dplyr::group_by(ft) %>% summarise(num_tiers = n_distinct(Tier))
+dftype_tiers <- parser_healthcare_types %>% 
+                dplyr::group_by(ft) %>% 
+                summarise(num_tiers = n_distinct(Tier))
+
 
 #yes there are some (9) that appear in 2 tiers in different countries
 df2tiers <- dplyr::filter(dftype_tiers, num_tiers > 1)

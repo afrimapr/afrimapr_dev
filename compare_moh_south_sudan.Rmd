@@ -52,7 +52,7 @@ save(sfssd, file="sfssd.rda")
 ```
 
 
-```{r map_moh_ssudan, eval=FALSE, warning=FALSE}
+```{r map_moh_ssudan, eval=TRUE, warning=FALSE}
 
 # 9378 obs
 
@@ -74,16 +74,10 @@ sfmoh <- afrihealthsites("South Sudan", datasource=sfssd,
 #sfmoh_tza <- afrihealthsites("Tanzania", datasource=tanzania_file, type_filter='!Dispensary')
 
 # plot moh vs kemri on a map
-compare_hs_sources("south sudan", datasources=c('who',ssudan_file))
+afrihealthsites::compare_hs_sources("south sudan", datasources=c('who',ssudan_file))
 
 # most overlap but not total
 
-# moh data excludes zanzibar
-# I added zanzibar into tanzania for kemri data
-
-# todo 
-# remove zanzibar from who for the comparison
-# compare moh & who data, e.g. number locations of different categories
 
 
 ```
