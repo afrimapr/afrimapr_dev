@@ -1,12 +1,12 @@
 ---
 title: "compare_moh_kenya"
 output: html_document
-#just took tanzania & did find/replace tanzania/kenya ken/ken
 ---
 
-To compare moh data from kenya downloaded now with Kemri collated data from 2019.
+To compare moh data from kenya downloaded 2021 with Kemri collated data from 2019.
 
-NOTE Kenya MFL MoH download does not have coordinates.
+Kenya MFL MoH download does not have coordinates.
+Data from Caroline 2021-04 does have coordinates.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -15,11 +15,43 @@ library(afrihealthsites)
 library(knitr) #for kable
 library(dplyr)
 library(ggplot2)
+library(sf) #to read in shapefile
 
 ```
 
 
-```{r, eval=TRUE, warning=FALSE}
+Data from WiGISKe 2021-4 seem to be the best data.
+
+```{r read-wigiske, eval=TRUE, warning=FALSE, echo=FALSE}
+
+wigiske_file <- "data-raw\\health-facilities-kenya-2021-04\\Healthcare_Facilities.shp"
+
+# test reading in file
+sfken <- sf::st_read(wigiske_file)
+
+names(sfken)
+# [1] "OBJECTID"   "Facility_N" "Type"       "Owner"      "County"     "Sub_County" "Division"   "Location"  
+# [9] "Sub_Locati" "Constituen" "Nearest_To" "Latitude"   "Longitude"  "geometry"  
+
+length(names(sfken))
+#14
+
+#26 types
+fac_types_wigiske <- unique(sfken[['Type']])
+#22 owners
+owners_wigiske <- unique(sfken[['Owner']])
+
+
+nrow(sfken)
+# 10013
+
+
+
+```
+
+
+
+```{r read-moh, eval=TRUE, warning=FALSE, echo=FALSE}
 
 kenya_file <- "data-raw\\health-facilities-moh-kenya.csv"
 
@@ -35,11 +67,15 @@ names(dfken)
 # [21] "Open_late_night"        "Service_names"          "Approved"               "Public visible"        
 # [25] "Closed" 
 
+#length(names(dfken))
+#25
 
 #29 cats
-unique(dfken[['Facility type']])
+fac_types_moh <- unique(dfken[['Facility type']])
 #9 cats
-unique(dfken[['Facility_type_category']])
+fac_type_cats_moh <- unique(dfken[['Facility_type_category']])
+#19 owners
+owners_moh <- unique(dfken[['Owner']])
 
 nrow(dfken)
 # 12378
@@ -80,7 +116,7 @@ compare_hs_sources("kenya", datasources=c('who',kenya_file),
 ```
 
 Plot counts of facility types from MoH data
-```{r ken_moh_facility_types, echo=FALSE, warnings=FALSE, asis=TRUE, fig.width=9, fig.height=9}
+```{r ken_moh_facility_types, echo=FALSE, warning=FALSE, asis=TRUE, fig.width=8, fig.height=8}
 
 # Facility_type_category
 ggken <- facility_types("kenya", 
@@ -122,7 +158,7 @@ plot(ggken)
 ```
 
 
-#Note that the file doesn't have coordinates
+#Note that the MOH file doesn't have coordinates
 #but it does have sub-county (?admin3)
 
 
