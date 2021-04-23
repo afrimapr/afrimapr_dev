@@ -1,15 +1,33 @@
 ---
-title: "compare_moh_kenya"
-output: html_document
+title: "Comparing Kenyan Health facility location data from different sources"
+#output: html_document
+author: "Andy South @afrimapr"
+date: "`r Sys.Date()`"
+output: pdf_document
 ---
 
-To compare moh data from kenya downloaded 2021 with Kemri collated data from 2019.
+DRAFT
+[Code for this document](https://github.com/afrimapr/afrimapr_dev/blob/master/compare_moh_kenya.Rmd)
 
-Kenya MFL MoH download does not have coordinates.
-Data from Caroline 2021-04 does have coordinates.
+We currently have access to the following sources of health facility locations for Kenya.
+
+1. a file obtained by WiGISKe 2021-04
+1. downloaded from Ministry of Health website (no coordinates)
+1. healthsites.io in OpenStreetMap
+1. collated data from published paper Maina(2019) 
+
+We will initially concentrate on comparing the first 3, given that we know the Maina(2019) data are older.
+
+Numbers of locations per source.
+
+source  | number facilities | spatial data | useful attributes
+-------- | -------------- | ------------------ | ------------------
+1. WiGISKe |  10013  | coords | Owner
+2. MoH     |  12378 | Ward | Registration_number,Keph level,Owner type,Beds,Cots,Operation status,Open_weekends
+3. OSM    | 2032 | coords | (few complete) beds,staff_doctors,staph nurses
+
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
 
 library(afrihealthsites)
 library(knitr) #for kable
@@ -17,32 +35,40 @@ library(dplyr)
 library(ggplot2)
 library(sf) #to read in shapefile
 
+knitr::opts_chunk$set(echo = TRUE)
+opts_knit$set(global.par = TRUE)
+
 ```
 
 
-Data from WiGISKe 2021-4 seem to be the best data.
 
-```{r read-wigiske, eval=TRUE, warning=FALSE, echo=FALSE}
+```{r, include=FALSE}
+#to stop fig margins getting cut
+#https://stackoverflow.com/questions/32827651/plot-margins-in-rmarkdown-knitr
+par(mar=c(5,5,5,5)) #it's important to have that in a separate chunk
+```
 
-wigiske_file <- "data-raw\\health-facilities-kenya-2021-04\\Healthcare_Facilities.shp"
+
+```{r read-wigiske, eval=TRUE, include=FALSE}
+
+file_wigiske <- "data-raw\\health-facilities-kenya-2021-04\\Healthcare_Facilities.shp"
 
 # test reading in file
-sfken <- sf::st_read(wigiske_file)
+sfwigiske <- sf::st_read(file_wigiske)
 
-names(sfken)
+names(sfwigiske)
 # [1] "OBJECTID"   "Facility_N" "Type"       "Owner"      "County"     "Sub_County" "Division"   "Location"  
 # [9] "Sub_Locati" "Constituen" "Nearest_To" "Latitude"   "Longitude"  "geometry"  
 
-length(names(sfken))
+length(names(sfwigiske))
 #14
 
 #26 types
-fac_types_wigiske <- unique(sfken[['Type']])
+types_wigiske <- unique(sfwigiske[['Type']])
 #22 owners
-owners_wigiske <- unique(sfken[['Owner']])
+owners_wigiske <- unique(sfwigiske[['Owner']])
 
-
-nrow(sfken)
+nrow(sfwigiske)
 # 10013
 
 
@@ -51,14 +77,14 @@ nrow(sfken)
 
 
 
-```{r read-moh, eval=TRUE, warning=FALSE, echo=FALSE}
+```{r read-moh, eval=TRUE, include=FALSE}
 
-kenya_file <- "data-raw\\health-facilities-moh-kenya.csv"
+file_moh <- "data-raw\\health-facilities-moh-kenya.csv"
 
 # test reading in file
-dfken <- read.csv(kenya_file, as.is=TRUE, check.names=FALSE)
+dfmoh <- read.csv(file_moh, as.is=TRUE, check.names=FALSE)
 
-names(dfken)
+names(dfmoh)
 #  [1] "Code"                   "Name"                   "Officialname"           "Registration_number"   
 #  [5] "Keph level"             "Facility type"          "Facility_type_category" "Owner"                 
 #  [9] "Owner type"             "Regulatory body"        "Beds"                   "Cots"                  
@@ -67,79 +93,137 @@ names(dfken)
 # [21] "Open_late_night"        "Service_names"          "Approved"               "Public visible"        
 # [25] "Closed" 
 
-#length(names(dfken))
+#length(names(dfmoh))
 #25
 
 #29 cats
-fac_types_moh <- unique(dfken[['Facility type']])
+fac_types_moh <- unique(dfmoh[['Facility type']])
 #9 cats
-fac_type_cats_moh <- unique(dfken[['Facility_type_category']])
+fac_type_cats_moh <- unique(dfmoh[['Facility_type_category']])
 #19 owners
-owners_moh <- unique(dfken[['Owner']])
+owners_moh <- unique(dfmoh[['Owner']])
 
-nrow(dfken)
+nrow(dfmoh)
 # 12378
 
 ```
 
+```{r read-osm, eval=TRUE, include=FALSE}
 
-```{r map_moh_kenya, eval=FALSE, warning=FALSE}
 
-#eval=FALSE because no coordinates
+# cached in afrihealthsites 1593 facilities
+dfosmold <- afrihealthsites('kenya',datasource = 'healthsites')
+# osm live 2032 facilities
+dfosm <- afrihealthsites('kenya',datasource = 'healthsites_live')
 
-# just view MoH data
-sfmoh_ken <- afrihealthsites("kenya", datasource=kenya_file,
-                             type_column = 'Facility_type_category',
-                             label_column = 'Facility Name',
-                             lonlat_columns = c("Longitude", "Latitude"))
+names(dfosm)
+#  [1] "osm_id"              "osm_type"            "completeness"        "is_in_health_zone"   "amenity"          
+#  [6] "speciality"          "addr_street"         "part_time_beds"      "tag"                 "operator"         
+# [11] "water_source"        "changeset_id"        "insurance"           "staff_doctors"       "contact_number"   
+# [16] "uuid"                "electricity"         "opening_hours"       "operational_status"  "source"           
+# [21] "is_in_health_area"   "health_amenity_type" "changeset_version"   "emergency"           "changeset_timestamp"
+# [26] "addr_housenumber"    "addr_postcode"       "addr_city"           "name"                "staff_nurses"     
+# [31] "changeset_user"      "wheelchair"          "beds"                "url"                 "dispensing"       
+# [36] "healthcare"          "operator_type"       "geometry" 
 
-#testing filter
-#sfmoh_ken <- afrihealthsites("kenya", datasource=kenya_file, type_filter='Dispensary')
-#filter with two types
-#sfmoh_ken <- afrihealthsites("kenya", datasource=kenya_file, type_filter=c('Dispensary','Health Center'))
+length(names(dfosm))
+#38
 
-#trying to remove one from selection doesn't work
-#sfmoh_ken <- afrihealthsites("kenya", datasource=kenya_file, type_filter='-Dispensary')
-#sfmoh_ken <- afrihealthsites("kenya", datasource=kenya_file, type_filter='!Dispensary')
+#6 types
+types_osm <- unique(dfosm[['amenity']])
+#or 
+types2_osm <- unique(dfosm[['healthcare']])
+#21 owners
+owners_moh <- unique(dfosm[['operator_type']])
 
-# plot moh vs kemri on a map
-# this does work now but only because the defaults are set up for kenya
-# todo sort code so will work for other countries
-compare_hs_sources("kenya", datasources=c('who',kenya_file),
-                   type_column = 'Facility Type',
-                   label_column = 'Facility Name')
-                   #lonlat_columns = c("Longitude", "Latitude"))
+nrow(dfosm)
+# 2032
 
+```
+
+## Comparing frequency of facility types in MoH & WiGISKe data
+
+```{r compare_types_moh_wigiske, echo=FALSE, warning=FALSE, asis=TRUE, fig.width=8, fig.height=9}
+
+
+    library(patchwork)
+
+    gg1 <- afrihealthsites::facility_types("kenya", 
+                                           datasource=file_moh,
+                                           type_column = 'Facility type',
+                                           lonlat_columns = NULL,
+                                           plot=FALSE,
+                                           plot_title = "MoH data : Frequency of facility types (no coords)")
+
+    gg2 <- afrihealthsites::facility_types("kenya", 
+                                           datasource=sfwigiske,
+                                           type_column = 'Type',
+                                           plot=FALSE,
+                                           plot_title = "WiGISKe data : Frequency of facility types (with coords)")
+
+    
+
+      #set xmax to be the same for both plots
+      #hack to find max xlim for each object
+      #TODO make this less hacky ! it will probably fail when ggplot changes
+      max_x1 <- max(ggplot_build(gg1)$layout$panel_params[[1]]$x$continuous_range)
+      max_x2 <- max(ggplot_build(gg2)$layout$panel_params[[1]]$x$continuous_range)
+      #set xmax for both plots to this
+      gg1 <- gg1 + xlim(c(0,max(max_x1,max_x2, na.rm=TRUE)))
+      gg2 <- gg2 + xlim(c(0,max(max_x1,max_x2, na.rm=TRUE)))
+
+      #set size of y plots to be dependent on num cats
+      #y axis has cats, this actually gets max of y axis, e.g. for 6 cats is 6.6
+      max_y1 <- max(ggplot_build(gg1)$layout$panel_params[[1]]$y$continuous_range)
+      max_y2 <- max(ggplot_build(gg2)$layout$panel_params[[1]]$y$continuous_range)
+
+      #setting heights to num cats makes bar widths constant between cats
+      gg1 / gg2 + plot_layout(heights=c(max_y1, max_y2)) #patchwork
 
 
 
 ```
 
-Plot counts of facility types from MoH data
-```{r ken_moh_facility_types, echo=FALSE, warning=FALSE, asis=TRUE, fig.width=8, fig.height=8}
+## MoH facility attributes
+
+```{r moh_facility_type_category, echo=FALSE, warning=FALSE, asis=TRUE, fig.width=11, fig.height=5}
 
 # Facility_type_category
 ggken <- facility_types("kenya", 
-                        datasource=kenya_file,
+                        datasource=dfmoh,
                         type_column = 'Facility_type_category',
-                        lonlat_columns = NULL) #specifying that there are no coords
-plot(ggken)
+                        lonlat_columns = NULL,
+                        #plot=FALSE,
+                        plot_title = "MoH data : Frequency of facility type categories (no coords)")
+
+#ggken  + plot_layout(ncol=2,widths=c(1,0.1))
+```
+
+
+```{r moh_keph_level, echo=FALSE, warning=FALSE, asis=TRUE, fig.width=11, fig.height=4}
 
 # Keph level, defined facility levels
 ggken <- facility_types("kenya", 
-                        datasource=kenya_file,
+                        datasource=dfmoh,
                         type_column = "Keph level",
-                        lonlat_columns = NULL) #specifying that there are no coords
-plot(ggken)
+                        lonlat_columns = NULL,
+                        plot_title = "MoH data : Keph level (no coords)")
+#plot(ggken)
+```
+
+
+```{r moh_owner_type, echo=FALSE, warning=FALSE, asis=TRUE, fig.width=11, fig.height=3}
 
 # Owner type = public/private
 ggken <- facility_types("kenya", 
-                        datasource=kenya_file,
+                        datasource=dfmoh,
                         type_column = "Owner type",
-                        lonlat_columns = NULL) #specifying that there are no coords
-plot(ggken)
+                        lonlat_columns = NULL,                        
+                        plot_title = "MoH data : Owner type (no coords)")
+#plot(ggken)
 
-as.data.frame(table(dfken$`Owner type`))
+
+#as.data.frame(table(dfmoh$`Owner type`))
 # 1       Faith Based Organization 1035
 # 2             Ministry of Health 5875
 # 3 Non-Governmental Organizations  366
@@ -147,18 +231,45 @@ as.data.frame(table(dfken$`Owner type`))
 
 
 #number of beds - but the default plot doesn't cope well with the numeric data
-ggken <- facility_types("kenya", 
-                        datasource=kenya_file,
-                        type_column = 'Beds',
-                        lonlat_columns = NULL) #specifying that there are no coords
-plot(ggken)
+# ggken <- facility_types("kenya", 
+#                         datasource=dfmoh,
+#                         type_column = 'Beds',
+#                         lonlat_columns = NULL,                        
+#                         plot_title = "MoH data : Number of beds (no coords)")
+# plot(ggken)
 
 
 
 ```
 
 
-#Note that the MOH file doesn't have coordinates
-#but it does have sub-county (?admin3)
+```{r map_moh_kenya, eval=FALSE, include=FALSE}
+
+#eval=FALSE because no coordinates
+
+# just view MoH data
+sfmoh <- afrihealthsites("kenya", datasource=file_moh,
+                             type_column = 'Facility_type_category',
+                             label_column = 'Facility Name',
+                             lonlat_columns = c("Longitude", "Latitude"))
+
+#testing filter
+#sfmoh <- afrihealthsites("kenya", datasource=file_moh, type_filter='Dispensary')
+#filter with two types
+#sfmoh <- afrihealthsites("kenya", datasource=file_moh, type_filter=c('Dispensary','Health Center'))
+
+#trying to remove one from selection doesn't work
+#sfmoh <- afrihealthsites("kenya", datasource=file_moh, type_filter='-Dispensary')
+#sfmoh <- afrihealthsites("kenya", datasource=file_moh, type_filter='!Dispensary')
+
+# plot moh vs kemri on a map
+# this does work now but only because the defaults are set up for kenya
+# todo sort code so will work for other countries
+compare_hs_sources("kenya", datasources=c('who',file_moh),
+                   type_column = 'Facility Type',
+                   label_column = 'Facility Name')
+                   #lonlat_columns = c("Longitude", "Latitude"))
+
+```
 
 
