@@ -7,12 +7,12 @@ output: pdf_document
 ---
 
 DRAFT
-[Code for this document](https://github.com/afrimapr/afrimapr_dev/blob/master/compare_moh_kenya.Rmd)
+Code here:[https://github.com/afrimapr/afrimapr_dev/blob/master/compare_moh_kenya.Rmd](https://github.com/afrimapr/afrimapr_dev/blob/master/compare_moh_kenya.Rmd)
 
 We currently have access to the following sources of health facility locations for Kenya.
 
 1. a file obtained by WiGISKe 2021-04
-1. downloaded from Ministry of Health website (no coordinates)
+1. downloaded from Ministry of Health website (no coordinates) [http://kmhfl.health.go.ke/#/facility_filter/results](http://kmhfl.health.go.ke/#/facility_filter/results)
 1. healthsites.io in OpenStreetMap
 1. collated data from published paper Maina(2019) 
 
@@ -239,6 +239,34 @@ ggken <- facility_types("kenya",
 # plot(ggken)
 
 
+
+```
+
+
+
+```{r owner-wigiske, echo=FALSE, warning=FALSE, asis=TRUE, fig.width=11, fig.height=6}
+
+
+#22 owners
+owners_wigiske <- unique(sfwigiske[['Owner']])
+
+ggken <- facility_types("kenya", 
+                        datasource=sfwigiske,
+                        type_column = "Owner",
+                        plot_title = "WiGISKe data : Owner")
+
+
+```
+
+## All attribute columns in WiGISKe & MoH data 
+
+```{r attribute columns, echo=FALSE, warning=FALSE}
+
+#WiGISKe
+names(sfwigiske)
+
+#MoH
+names(dfmoh)
 
 ```
 
