@@ -24,7 +24,7 @@ source  | number facilities | spatial data | useful attributes
 -------- | -------------- | ------------------ | ------------------
 1. WiGISKe |  10013  | coords | Owner
 2. MoH     |  12378 | Ward | Registration_number,Keph level,Owner type,Beds,Cots,Operation status,Open_weekends
-3. OSM    | 2032 | coords | (few complete) beds,staff_doctors,staph nurses
+3. OSM    | 2032 | coords | (few complete) beds,staff_doctors,staff nurses
 
 
 ```{r setup, include=FALSE}
