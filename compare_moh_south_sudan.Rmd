@@ -1,9 +1,32 @@
 ---
-title: "compare_moh_south_sudan"
-output: html_document
+title: "Comparing South Sudan Health facility location data from different sources"
+#output: html_document
+author: "Andy South @afrimapr"
+date: "`r Sys.Date()`"
+output: pdf_document
 ---
 
-To compare moh data from South Sudan downloaded now with Kemri collated data from 2019.
+DRAFT
+[Code for this document](https://github.com/afrimapr/afrimapr_dev/blob/master/compare_moh_southsudan.Rmd)
+
+We currently have access to the following sources of health facility locations for South Sudan.
+
+1. downloaded from Ministry of Health website [https://www.southsudanhealth.info/](https://www.southsudanhealth.info/)
+1. healthsites.io in OpenStreetMap
+1. collated data from published paper Maina(2019) 
+1. [South Sudan Health Service Functionality Dashboard](https://southsudanhsf.shinyapps.io/hsf_dashboard/) (locations not downloadable)
+
+We will initially concentrate on comparing the first 3, given that we know the Maina(2019) data are older.
+
+Numbers of locations per source.
+
+source  | number facilities | spatial data | useful attributes
+-------- | -------------- | ------------------ | ------------------
+
+2. MoH     |  12378 | coords |  status,Open_weekends
+3. OSM/healthsites    | 432 | coords | (few complete) beds,staff_doctors,staff nurses
+4. Health Service Functionality Dashboard | not downloadable | lots e.g. functionality
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
