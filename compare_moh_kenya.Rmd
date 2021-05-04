@@ -16,9 +16,9 @@ We currently have access to the following sources of health facility locations f
 1. healthsites.io in OpenStreetMap
 1. collated data from published paper Maina(2019) 
 
-We will initially concentrate on comparing the first 3, given that we know the Maina(2019) data are older.
-
 Following discussion 2021-04-29 suggestion that modelling work at the ward level uses the MoH data that has advantage of having a clear provenance (and also has the most facilities and attributes).
+
+Also note that the MoH data has a column named 'Code' which matches with the 'MFL CODE' column in the pdf of MoH approved Vaccination posts so will allow us to link the two. 
 
 Numbers of locations per source.
 
