@@ -11,19 +11,21 @@ Code here:[https://github.com/afrimapr/afrimapr_dev/blob/master/compare_moh_keny
 
 We currently have access to the following sources of health facility locations for Kenya.
 
-1. a file obtained by WiGISKe 2021-04
 1. downloaded from Ministry of Health website (no coordinates) [http://kmhfl.health.go.ke/#/facility_filter/results](http://kmhfl.health.go.ke/#/facility_filter/results)
+1. a file created by WiGISKe 2021-04 from multiple sources
 1. healthsites.io in OpenStreetMap
 1. collated data from published paper Maina(2019) 
 
 We will initially concentrate on comparing the first 3, given that we know the Maina(2019) data are older.
 
+Following discussion 2021-04-29 suggestion that modelling work at the ward level uses the MoH data that has advantage of having a clear provenance (and also has the most facilities and attributes).
+
 Numbers of locations per source.
 
 source  | number facilities | spatial data | useful attributes
 -------- | -------------- | ------------------ | ------------------
-1. WiGISKe |  10013  | coords | Owner
-2. MoH     |  12378 | Ward | Registration_number,Keph level,Owner type,Beds,Cots,Operation status,Open_weekends
+1. MoH     |  12378 | Ward | Registration_number,Keph level,Owner type,Beds,Cots,Operation status,Open_weekends
+2. WiGISKe |  10013  | coords | Owner
 3. OSM    | 2032 | coords | (few complete) beds,staff_doctors,staff nurses
 
 
@@ -112,11 +114,11 @@ nrow(dfmoh)
 
 
 # cached in afrihealthsites 1593 facilities
-dfosmold <- afrihealthsites('kenya',datasource = 'healthsites')
+dfosm <- afrihealthsites('kenya',datasource = 'healthsites')
 # osm live 2032 facilities
-dfosm <- afrihealthsites('kenya',datasource = 'healthsites_live')
+#dfosm <- afrihealthsites('kenya',datasource = 'healthsites_live')
 
-names(dfosm)
+#names(dfosm)
 #  [1] "osm_id"              "osm_type"            "completeness"        "is_in_health_zone"   "amenity"          
 #  [6] "speciality"          "addr_street"         "part_time_beds"      "tag"                 "operator"         
 # [11] "water_source"        "changeset_id"        "insurance"           "staff_doctors"       "contact_number"   
@@ -297,6 +299,49 @@ compare_hs_sources("kenya", datasources=c('who',file_moh),
                    type_column = 'Facility Type',
                    label_column = 'Facility Name')
                    #lonlat_columns = c("Longitude", "Latitude"))
+
+```
+
+# Number of facilities per ward in MoH data
+```{r moh-per-ward, echo=FALSE, warning=FALSE, asis=TRUE, fig.width=11, fig.height=6}
+
+library(dplyr)
+
+dfcountbyward <- dfmoh %>% group_by(Ward) %>% summarise(count=n())
+
+ggplot(dfcountbyward, aes(x=count)) + geom_bar()
+
+```
+
+
+```{r moh_type_and_owner_type, echo=FALSE, warning=FALSE, asis=TRUE, fig.width=11, fig.height=4}
+
+# bar chart with columns for 'Facility_type_category', coloured by "Owner type"
+
+#note 2 spaces after health
+toexclude <- c("Primary health  care services", "None")
+dfmoh2 <- dfmoh[-which(dfmoh$Facility_type_category %in% toexclude ),]
+
+gg <- ggplot2::ggplot(dfmoh2, aes(y = Facility_type_category, fill = `Owner type`))
+
+gg <- gg + geom_bar(show.legend=TRUE) +
+      labs(title="MoH data - ownership by facility type") +
+      theme_minimal() 
+      
+gg
+
+```
+
+```{r moh_kephlevel_and_owner_type, echo=FALSE, warning=FALSE, asis=TRUE, fig.width=11, fig.height=4}
+
+
+gg <- ggplot2::ggplot(dfmoh, aes(y = `Keph level`, fill = `Owner type`))
+
+gg <- gg + geom_bar(show.legend=TRUE) +
+      labs(title="MoH data - ownership by Keph level") +
+      theme_minimal() 
+      
+gg
 
 ```
 
