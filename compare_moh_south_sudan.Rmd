@@ -4,6 +4,7 @@ title: "Comparing South Sudan Health facility location data from different sourc
 author: "Andy South @afrimapr"
 date: "`r Sys.Date()`"
 output: pdf_document
+always_allow_html: true
 ---
 
 DRAFT
@@ -13,20 +14,20 @@ We currently have access to the following sources of health facility locations f
 
 1. downloaded from Ministry of Health website [https://www.southsudanhealth.info/](https://www.southsudanhealth.info/)
 1. healthsites.io in OpenStreetMap
-1. collated data from published paper Maina(2019) 
 1. [South Sudan Health Service Functionality Dashboard](https://southsudanhsf.shinyapps.io/hsf_dashboard/) (locations not downloadable)
-
-We will initially concentrate on comparing the first 3, given that we know the Maina(2019) data are older.
+1. collated data from published paper Maina(2019) 
 
 Numbers of locations per source.
 
 source  | number facilities | spatial data | useful attributes
--------- | -------------- | ------------------ | ------------------
+------------ | ---------- | ------------------ | ------------------
+1. MoH     |  2889 | coords (2553 with, 336 without) |  Facility codes in 'Ext Ref' e.g. FC05040202
+2. OSM/healthsites    | 432 | coords | (few complete) beds,staff_doctors,staff nurses
+3. Health Service Functionality Dashboard | 1890 | not downloadable, (1671 with coords, 219 without) | lots e.g. functionality
 
-2. MoH     |  12378 | coords |  status,Open_weekends
-3. OSM/healthsites    | 432 | coords | (few complete) beds,staff_doctors,staff nurses
-4. Health Service Functionality Dashboard | not downloadable | lots e.g. functionality
+The downloadable MoH data do not seem to have changed in the last year.
 
+The Functionality Dashboard says this about the data displayed there : "Facility data for this bulletin was kindly contributed by the Health Cluster partners, Health Pooled Fund (HPF), the International Committee of the Red Cross (ICRC), Management Sciences International (MSI), UNICEF, and UNHCR. Additional service availability data was extracted from the Ministry of Health DHIS2 platform for facilities without an implementing partner report. Most data was reported as of 31 March 2020, but the report date for each facility is indicated by hovering over a facility marker on the map. Implementing partners self-report on a quarterly basis service availability based predefined, standardized service availability data points and definitions. WHO merges the respective data sets and assigns a functionality level to each facility based on the criteria below."
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -39,7 +40,7 @@ library(ggplot2)
 ```
 
 
-```{r, eval=FALSE, warning=FALSE}
+```{r, eval=TRUE, include=FALSE, warning=FALSE}
 
 ssudan_file <- "data-raw\\south_sudan_facility_info_2020-05-13.csv"
 
@@ -67,7 +68,7 @@ dfssd <- cbind(dfssd, dfcoords)
 
 sfssd <- sf::st_as_sf(dfssd, coords=c("Longitude", "Latitude"), crs = 4326)
 
-mapview::mapview(sfssd)
+#mapview::mapview(sfssd)
 
 #save
 save(sfssd, file="sfssd.rda")
@@ -75,45 +76,58 @@ save(sfssd, file="sfssd.rda")
 ```
 
 
-```{r map_moh_ssudan, eval=TRUE, warning=FALSE}
+```{r map_moh_ssudan, eval=FALSE, include=FALSE, warning=FALSE}
 
-# 9378 obs
+# 2889 obs
 
 # just view MoH data
 sfmoh <- afrihealthsites("South Sudan", datasource=ssudan_file, lonlat_columns = "Location")
 
-# try passing just pre-read sf object 
 sfmoh <- afrihealthsites("South Sudan", datasource=sfssd,                              
                          type_column = 'type',
                          label_column = 'Facility')
 
-#testing filter
-#sfmoh_tza <- afrihealthsites("Tanzania", datasource=tanzania_file, type_filter='Dispensary')
-#filter with two types
-#sfmoh_tza <- afrihealthsites("Tanzania", datasource=tanzania_file, type_filter=c('Dispensary','Health Center'))
-
-#trying to remove one from selection doesn't work
-#sfmoh_tza <- afrihealthsites("Tanzania", datasource=tanzania_file, type_filter='-Dispensary')
-#sfmoh_tza <- afrihealthsites("Tanzania", datasource=tanzania_file, type_filter='!Dispensary')
 
 # plot moh vs kemri on a map
-afrihealthsites::compare_hs_sources("south sudan", datasources=c('who',ssudan_file))
+# afrihealthsites::compare_hs_sources("south sudan", datasources=c('who',ssudan_file))
 
 # most overlap but not total
+
+
+```
+
+
+```{r moh_type_frequencies, echo=FALSE, warnings=FALSE, asis=TRUE, fig.width=9, fig.height=9}
+
+# Plot counts of facility types from MoH data
+
+# pass the sf object directly
+ggssd <- facility_types("south sudan", 
+                        datasource=sfssd,
+                        type_column = "type",
+                        plot_title="Facility types in South Sudan MoH data",
+                        plot=FALSE)
+plot(ggssd)
 
 
 
 ```
 
-Plot counts of facility types from MoH data
-```{r compare_type_frequencies, echo=FALSE, warnings=FALSE, asis=TRUE, fig.width=9, fig.height=9}
 
-# trying to pass the sf object directly
+
+```{r moh_missing_coords, echo=FALSE, warnings=FALSE, asis=TRUE, fig.width=9, fig.height=9}
+
+
+sfssdnocoords <- sfssd[which(sfssd$Location=="0.00000, 0.00000"),] 
+sfssdcoords <- sfssd[which(sfssd$Location!="0.00000, 0.00000"),] 
+
+# types for those without coords
 ggssd <- facility_types("south sudan", 
-                        datasource=sfssd,
-                        type_column = "type")
+                        datasource=sfssdnocoords,
+                        type_column = "type",
+                        plot_title="336 Facilities in the MoH data have no coordinates",
+                        plot=FALSE)
 plot(ggssd)
-
 
 
 ```
