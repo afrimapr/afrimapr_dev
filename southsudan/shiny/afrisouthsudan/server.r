@@ -54,9 +54,16 @@ function(input, output) {
     # TODO add UI element for MoH types & allow selection here
     
     # allow subset by admin region
+    # sfssdcoords <- afrihealthsites::afrihealthsites("south sudan", datasource = sfssdcoords, plot = FALSE,
+    #                                           admin_level=input$cboxadmin,
+    #                                           admin_names=input$selected_admin_names)
+    # adding facility type selection too 
     sfssdcoords <- afrihealthsites::afrihealthsites("south sudan", datasource = sfssdcoords, plot = FALSE,
-                                              admin_level=input$cboxadmin,
-                                              admin_names=input$selected_admin_names)
+                                                    type_column = "type", #TODO allow for broad cats
+                                                    type_filter=input$selected_moh_cats,                                                    
+                                                    admin_level=input$cboxadmin,
+                                                    admin_names=input$selected_admin_names)    
+    
     
     numcolours <- length(unique(sfssdcoords$type))
     mapplot <- mapplot + mapview::mapview(sfssdcoords,
@@ -133,6 +140,25 @@ function(input, output) {
                        selected = who_cats,
                        inline = FALSE)
   })
+  
+  ################################################################################
+  # dynamic selectable list of MoH facility categories 
+  output$select_moh_cat <- renderUI({
+    
+    # I could repeat acquiring data to allow admin region selection to occur
+    # simpler here just uses whole datset so that it doesn't change based on admin region selection
+    
+    # TODO could allowing for 4 Tiers reclass when I've done
+    #moh_cats <- sort(unique(sfwho[[input$who_type_option]]))
+    moh_cats <- sort(unique(sfssd[["type"]]))
+        
+    #"who-kemri categories"
+    checkboxGroupInput("selected_moh_cats", label = "MoH categories",
+                       choices = moh_cats,
+                       selected = moh_cats,
+                       inline = FALSE)
+  })  
+  
 
   ################################################################################
   # dynamic selectable list of admin regions for selected country [&later admin level]
@@ -189,8 +215,8 @@ function(input, output) {
                                            datasource = sfssd, #using sf stops it from needing names of coord columns
                                            plot = TRUE,
                                            #lonlat_columns =
-                                           type_filter = 'all',
-                                           type_column = 'type',
+                                           type_column = "type", #TODO allow for broad cats
+                                           type_filter=input$selected_moh_cats,    
                                            brewer_palette = "Oranges",
                                            admin_level=input$cboxadmin,
                                            admin_names=input$selected_admin_names )

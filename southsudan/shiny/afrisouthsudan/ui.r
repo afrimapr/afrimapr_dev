@@ -68,12 +68,16 @@ fluidPage(
     ),
 
 
+    # dynamic moh category selection
+    uiOutput("select_moh_cat"),    
+    
+    # healthsites facility type selection
     checkboxGroupInput("hs_amenity", label = "healthsites categories",
                        choices = list("hospital"="hospital", "clinic"="clinic", "doctors"="doctors", "pharmacy"="pharmacy", "unlabelled"="", "dentist" = "dentist"),
-                       selected = c("hospital","clinic","doctors","pharmacy")),
-
+                       selected = c("hospital","clinic","doctors","pharmacy")),    
+    
     #who cats whether to display raw or 9 broad or 4 tiers
-    selectInput("who_type_option", label = "WHO-KEMRI categories",
+    selectInput("who_type_option", label = "WHO-KEMRI(older)",
                 choices = list("raw" = "Facility type",
                                "reclassified to 9" = "facility_type_9",
                                "4 Tiers (Falchetta 2020)" = "Tier_name"),
