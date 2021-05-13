@@ -17,6 +17,12 @@ library(afrihealthsites)
 
 #global variables
 
+# load moh health facility data
+# created in compare_moh_south_sudan.Rmd
+load('sfssd.rda')
+
+sfssdcoords <- sfssd[which(sfssd$Location!="0.00000, 0.00000"),] 
+
 # to try to allow retaining of map zoom, when type checkboxes are selected
 zoom_view <- NULL
 # when country is changed I want whole map to change
@@ -41,6 +47,16 @@ function(input, output) {
                                                    admin_level=input$cboxadmin,
                                                    admin_names=input$selected_admin_names)
 
+    ###################################################################
+    # ADD the MoH data to the mapplot object
+    
+    numcolours <- length(unique(sfssdcoords$type))
+    mapplot <- mapplot + mapview::mapview(sfssdcoords,
+                                          zcol = "type",
+                                          label=paste("MoH",sfssdcoords[["type"]],sfssdcoords[["Facility"]]),
+                                          layer.name = "MoH",
+                                          col.regions = RColorBrewer::brewer.pal(numcolours, "Oranges"))    
+    
     # to retain zoom if only types have been changed
     if (!is.null(zoom_view))
     {
@@ -217,6 +233,22 @@ function(input, output) {
 
     DT::datatable(sfhs, options = list(pageLength = 50))
   })
+  
+  ###############################
+  # table of raw moh data
+  output$table_raw_moh <- DT::renderDataTable({
+    
+    # This uses sfssd to include data without coords
+    # sfssdcoords removes the ~300 locations without coords
+    
+    # drop the geometry column and few others - not wanted in table
+    sfssd <- sf::st_drop_geometry(sfssd)
+    sfssd <- sfssd[, which(names(sfssd)!="Location")]
+    #sfhs <- sfhs[, which(names(sfhs)!="iso3c" & names(sfhs)!="country")]
+        
+    DT::datatable(sfssd, options = list(pageLength = 50))
+  })  
+  
 
   ###############################
   # table of national list (MFL) availability

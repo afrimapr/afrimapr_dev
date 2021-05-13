@@ -100,6 +100,7 @@ fluidPage(
     tabsetPanel(type = "tabs",
                 tabPanel("map", leafletOutput("serve_healthsites_map", height=800)),
                 tabPanel("facility types", plotOutput("plot_fac_types", height=600)),
+                tabPanel("MoH data", DT::dataTableOutput("table_raw_moh")),
                 tabPanel("healthsites data", DT::dataTableOutput("table_raw_hs")),
                 tabPanel("WHO data", DT::dataTableOutput("table_raw_who"))
                 # table of availability of MoH MFL for all countries
