@@ -125,7 +125,7 @@ sfssdcoords <- sfssd[which(sfssd$Location!="0.00000, 0.00000"),]
 ggssd <- facility_types("south sudan", 
                         datasource=sfssdnocoords,
                         type_column = "type",
-                        plot_title="336 Facilities in the MoH data have no coordinates",
+                        plot_title="336 Facilities in the MoH data with no coordinates",
                         plot=FALSE)
 plot(ggssd)
 
