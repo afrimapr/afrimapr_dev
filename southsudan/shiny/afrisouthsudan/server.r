@@ -1,10 +1,6 @@
-#afrihealthsites/healthsites_viewer_v03/server.r
+#afrimapr_dev/southsudan/afrisouthsudan/server.r
 
-# to add selection by admin region
-
-cran_packages <- c("leaflet","remotes")
-lapply(cran_packages, function(x) if(!require(x,character.only = TRUE)) install.packages(x))
-
+# app to view south sudan health facility data
 
 library(remotes)
 library(leaflet)
@@ -35,7 +31,7 @@ function(input, output) {
   # mapview interactive leaflet map plot
   output$serve_healthsites_map <- renderLeaflet({
 
-    mapplot <- afrihealthsites::compare_hs_sources(input$country,
+    mapplot <- afrihealthsites::compare_hs_sources("south sudan",
                                                    datasources=c('healthsites','who'),
                                                    plot='mapview',
                                                    plotshow=FALSE,
@@ -71,10 +67,10 @@ function(input, output) {
   ####################################################################
   # perhaps can just reset zoomed view to NULL when country is changed
   # hurrah! this works, is it a hack ?
-  observe({
-    input$country
-    zoom_view <<- NULL
-  })
+  # observe({
+  #   input$country
+  #   zoom_view <<- NULL
+  # })
 
 
   ###################################
@@ -98,13 +94,10 @@ function(input, output) {
   # dynamic selectable list of who facility categories for selected country
   output$select_who_cat <- renderUI({
 
-    # get selected country name
-    #input$country
-
     # get categories in who for this country
     # first get the sf object - but later don't need to do that
     # TODO add a function to afrihealthsites package to return just the cats
-    sfwho <- afrihealthsites::afrihealthsites(input$country, datasource = 'who', plot = FALSE)
+    sfwho <- afrihealthsites::afrihealthsites("south sudan", datasource = 'who', plot = FALSE)
 
     #who_cats <- unique(sfwho$`Facility type`)
     # allowing for 9 cat reclass, & 4 Tiers
@@ -121,13 +114,11 @@ function(input, output) {
   # dynamic selectable list of admin regions for selected country [&later admin level]
   output$select_admin <- renderUI({
 
-    # get selected country name
-    #input$country
 
     # get categories in who for this country
     # first get the sf object - but maybe later don't need to do that
     # TODO? add a function to afriadmin package to return just the cats
-    sfadmin <- afriadmin::afriadmin(input$country, datasource = 'geoboundaries', plot = FALSE)
+    sfadmin <- afriadmin::afriadmin("south sudan", datasource = 'geoboundaries', plot = FALSE)
 
     admin_names <- unique(sfadmin$shapeName)
 
@@ -149,7 +140,7 @@ function(input, output) {
 
     #palletes here set to match those in map from compare_hs_sources()
 
-    gg1 <- afrihealthsites::facility_types(input$country,
+    gg1 <- afrihealthsites::facility_types("south sudan",
                                     datasource = 'healthsites',
                                     plot = TRUE,
                                     type_filter = input$hs_amenity,
@@ -158,7 +149,7 @@ function(input, output) {
                                     admin_level=input$cboxadmin,
                                     admin_names=input$selected_admin_names )
 
-    gg2 <- afrihealthsites::facility_types(input$country,
+    gg2 <- afrihealthsites::facility_types("south sudan",
                                            datasource = 'who',
                                            plot = TRUE,
                                            type_filter = input$selected_who_cats,
@@ -201,7 +192,7 @@ function(input, output) {
   # table of raw who data
   output$table_raw_who <- DT::renderDataTable({
 
-    sfwho <- afrihealthsites::afrihealthsites(input$country, datasource = 'who', who_type = input$selected_who_cats, plot = FALSE,
+    sfwho <- afrihealthsites::afrihealthsites("south sudan", datasource = 'who', who_type = input$selected_who_cats, plot = FALSE,
                                               admin_level=input$cboxadmin,
                                               admin_names=input$selected_admin_names)
 
@@ -216,7 +207,7 @@ function(input, output) {
   # table of raw healthsites data
   output$table_raw_hs <- DT::renderDataTable({
 
-    sfhs <- afrihealthsites::afrihealthsites(input$country, datasource = 'healthsites', hs_amenity = input$hs_amenity, plot = FALSE,
+    sfhs <- afrihealthsites::afrihealthsites("south sudan", datasource = 'healthsites', hs_amenity = input$hs_amenity, plot = FALSE,
                                              admin_level=input$cboxadmin,
                                              admin_names=input$selected_admin_names)
 
