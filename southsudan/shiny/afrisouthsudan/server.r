@@ -48,7 +48,15 @@ function(input, output) {
                                                    admin_names=input$selected_admin_names)
 
     ###################################################################
-    # ADD the MoH data to the mapplot object
+    # adding the MoH data to the mapplot object
+    
+
+    # TODO add UI element for MoH types & allow selection here
+    
+    # allow subset by admin region
+    sfssdcoords <- afrihealthsites::afrihealthsites("south sudan", datasource = sfssdcoords, plot = FALSE,
+                                              admin_level=input$cboxadmin,
+                                              admin_names=input$selected_admin_names)
     
     numcolours <- length(unique(sfssdcoords$type))
     mapplot <- mapplot + mapview::mapview(sfssdcoords,
@@ -174,6 +182,18 @@ function(input, output) {
                                            brewer_palette = "BuPu",
                                            admin_level=input$cboxadmin,
                                            admin_names=input$selected_admin_names )
+    
+    #moh data
+    #BEWARE whether to use sfssd including those with no coords ?
+    gg3 <- afrihealthsites::facility_types("south sudan",
+                                           datasource = sfssd, #using sf stops it from needing names of coord columns
+                                           plot = TRUE,
+                                           #lonlat_columns =
+                                           type_filter = 'all',
+                                           type_column = 'type',
+                                           brewer_palette = "Oranges",
+                                           admin_level=input$cboxadmin,
+                                           admin_names=input$selected_admin_names )
 
     # avoid error for N.Africa countries with no WHO data
     if (is.null(gg2))
@@ -187,17 +207,22 @@ function(input, output) {
       #TODO make this less hacky ! it will probably fail when ggplot changes
       max_x1 <- max(ggplot_build(gg1)$layout$panel_params[[1]]$x$continuous_range)
       max_x2 <- max(ggplot_build(gg2)$layout$panel_params[[1]]$x$continuous_range)
-      #set xmax for both plots to this
-      gg1 <- gg1 + xlim(c(0,max(max_x1,max_x2, na.rm=TRUE)))
-      gg2 <- gg2 + xlim(c(0,max(max_x1,max_x2, na.rm=TRUE)))
-
+      max_x3 <- max(ggplot_build(gg3)$layout$panel_params[[1]]$x$continuous_range)
+      
+      #set xmax for all plots to this
+      max_x <- max(max_x1,max_x2,max_x3, na.rm=TRUE)
+      gg1 <- gg1 + xlim(c(0,max_x))
+      gg2 <- gg2 + xlim(c(0,max_x))
+      gg3 <- gg3 + xlim(c(0,max_x))
+      
       #set size of y plots to be dependent on num cats
       #y axis has cats, this actually gets max of y axis, e.g. for 6 cats is 6.6
       max_y1 <- max(ggplot_build(gg1)$layout$panel_params[[1]]$y$continuous_range)
       max_y2 <- max(ggplot_build(gg2)$layout$panel_params[[1]]$y$continuous_range)
+      max_y3 <- max(ggplot_build(gg3)$layout$panel_params[[1]]$y$continuous_range)      
 
       #setting heights to num cats makes bar widths constant between cats
-      gg1 / gg2 + plot_layout(heights=c(max_y1, max_y2)) #patchwork
+      gg3 / gg1 / gg2 + plot_layout(heights=c(max_y3, max_y1, max_y2)) #patchwork
     }
 
 
@@ -240,6 +265,13 @@ function(input, output) {
     
     # This uses sfssd to include data without coords
     # sfssdcoords removes the ~300 locations without coords
+    
+    # TODO add UI elemnt for MoH types & allow selection here
+    
+    # allow subset by admin region
+    sfssd <- afrihealthsites::afrihealthsites("south sudan", datasource = sfssd, plot = FALSE,
+                                              admin_level=input$cboxadmin,
+                                              admin_names=input$selected_admin_names)
     
     # drop the geometry column and few others - not wanted in table
     sfssd <- sf::st_drop_geometry(sfssd)

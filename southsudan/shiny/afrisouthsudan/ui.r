@@ -46,6 +46,8 @@ fluidPage(
     p("by ", a("afrimapr", href="http://www.afrimapr.org", target="_blank"),
       ": creating R building-blocks to ease use of open health data in Africa"),
 
+    p("prototype NOT for decision support"),
+    
     # selectInput('country', 'Country', choices = sort(afcountries$name[!afcountries$name=="Western Sahara"]),
     #             size=5, selectize=FALSE, multiple=TRUE, selected="Angola"),
 
