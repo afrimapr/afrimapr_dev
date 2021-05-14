@@ -296,12 +296,15 @@ function(input, output) {
     
     # allow subset by admin region
     sfssd <- afrihealthsites::afrihealthsites("south sudan", datasource = sfssd, plot = FALSE,
+                                              type_column = "type", #TODO allow for broad cats
+                                              type_filter=input$selected_moh_cats,    
                                               admin_level=input$cboxadmin,
                                               admin_names=input$selected_admin_names)
     
     # drop the geometry column and few others - not wanted in table
     sfssd <- sf::st_drop_geometry(sfssd)
-    sfssd <- sfssd[, which(names(sfssd)!="Location")]
+    #keep LOcation in so can see when null
+    #sfssd <- sfssd[, which(names(sfssd)!="Location")]
     #sfhs <- sfhs[, which(names(sfhs)!="iso3c" & names(sfhs)!="country")]
         
     DT::datatable(sfssd, options = list(pageLength = 50))
