@@ -42,10 +42,10 @@ library(ggplot2)
 
 ```{r, eval=TRUE, include=FALSE, warning=FALSE}
 
-ssudan_file <- "data-raw\\south_sudan_facility_info_2020-05-13.csv"
 
-# test reading in file
-dfssd <- read.csv(ssudan_file, as.is=TRUE, check.names=FALSE)
+# read in files
+filemoh <- "data-raw\\south_sudan_facility_info_2020-05-13.csv"
+dfssd <- read.csv(filemoh, as.is=TRUE, check.names=FALSE)
 
 
 #ssudan has a single location column containing coords divided by commas as strings 
@@ -69,6 +69,46 @@ dfssd <- cbind(dfssd, dfcoords)
 sfssd <- sf::st_as_sf(dfssd, coords=c("Longitude", "Latitude"), crs = 4326)
 
 #mapview::mapview(sfssd)
+
+# I can add a 4 Tier classification here
+# add Tier 0 for unknown
+# TODO how best to do lookup ?
+# I'm tired this is a daft way of doing but works
+# I could put something into a function in afrihealhsites instead
+unique(sfssd$type) 
+#  [1] "Other"                        "Primary Health Care Centre"   "Primary Health Care Unit"    
+#  [4] "County Hospital"              "County Health Department"     "State Hospital"              
+#  [7] "Specialized Hospital/Clinic"  "Teaching Hospital"            "Health Training Institutions"
+# [10] "Ministry of Health"    
+
+
+# tiers <- afrihealthsites::tiers4(sfssd$type,
+#                                  tier1=c("Primary Health Care Unit"),
+#                                  tier2=c("Primary Health Care Centre"),                                 
+#                                  to_return = "Tier_name"
+#                                  )
+# 
+# sfssd$Tier_name <- tiers
+
+# moh_tier_lookup_pre <- data.frame("Other"=0,
+#                                   "Primary Health Care Centre"=2,
+#                                   "Primary Health Care Unit"=1)
+# 
+# moh_tier_lookup <- as.data.frame(t(moh_tier_lookup_pre))
+
+#tst <- as.data.frame(t(data.frame("a"="b","c"="d")))
+#tst$x <- rownames(tst)
+
+#match returns a vector of the positions of (first) matches of its first argument in its second.
+#sftogo$facility_type_9 <- who_type_lookup$facility_type_9[ match(sftogo$`Facility type`,who_type_lookup$type_who) ]
+
+
+
+# df_who_sites$Tier_name <- ifelse(df_who_sites$Tier==1,"Tier1 health post",
+#                             ifelse(df_who_sites$Tier==2,"Tier2 health center",
+#                             ifelse(df_who_sites$Tier==3,"Tier3 provincial hospital",
+#                             ifelse(df_who_sites$Tier==4,"Tier4 central hospital", NA))))
+
 
 #save
 save(sfssd, file="sfssd.rda")
@@ -97,7 +137,7 @@ sfmoh <- afrihealthsites("South Sudan", datasource=sfssd,
 ```
 
 
-```{r moh_type_frequencies, echo=FALSE, warnings=FALSE, asis=TRUE, fig.width=9, fig.height=9}
+```{r moh_type_frequencies, echo=FALSE, warnings=FALSE, asis=TRUE, fig.width=9, fig.height=6}
 
 # Plot counts of facility types from MoH data
 
@@ -113,9 +153,28 @@ plot(ggssd)
 
 ```
 
+```{r, eval=TRUE, echo=FALSE, warning=FALSE, asis=TRUE, fig.width=9, fig.height=4}
+
+# facility data (no coords) copied from WHO/MOH health service functionality (hsf) dashboard
+# 
+
+# read in files
+filehsf <- "data-raw\\2021-05-ssd-hsfdashboard-copy.csv"
+dfhsf <- read.csv(filehsf, as.is=TRUE, check.names=FALSE)
+
+gghsf <- facility_types("south sudan", 
+                        datasource=dfhsf,
+                        type_column = "Facility type",
+                        lonlat_columns = NULL,
+                        plot_title="Facility types, Health Service Functionality data (no coords)",
+                        plot=FALSE)
+plot(gghsf)
 
 
-```{r moh_missing_coords, echo=FALSE, warnings=FALSE, asis=TRUE, fig.width=9, fig.height=9}
+```
+
+
+```{r moh_missing_coords, echo=FALSE, warning=FALSE, asis=TRUE, fig.width=9, fig.height=6}
 
 
 sfssdnocoords <- sfssd[which(sfssd$Location=="0.00000, 0.00000"),] 
@@ -132,4 +191,6 @@ plot(ggssd)
 
 ```
 
+
+# TODO start to do subset analysis for Central Equatoria (incl. Juba)
 
