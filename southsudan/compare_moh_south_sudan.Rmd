@@ -19,11 +19,13 @@ We currently have access to the following sources of health facility locations f
 
 Numbers of locations per source.
 
-source  | number facilities | spatial data | useful attributes
------------- | ---------- | ------------------ | ------------------
-1. MoH     |  2889 | coords (2553 with, 336 without) |  Facility codes in 'Ext Ref' e.g. FC05040202
-2. OSM/healthsites    | 432 | coords | (few complete) beds,staff_doctors,staff nurses
-3. Health Service Functionality Dashboard | 1890 | not downloadable, (1671 with coords, 219 without) | lots e.g. functionality
+source  | num facilities | num hospitals | coords? | useful attributes
+------------- | ------- | ------- | --------------- | ---------
+1. MoH     |  2889 | 130 | coords (2553 with, 336 without) |  Facility codes in 'Ext Ref' e.g. FC05040202
+2. OSM/healthsites    | 432 | 72 | coords | (few complete) beds,staff_doctors,staff nurses
+3. Health Service Functionality Dashboard | 1890 | 82 | not downloadable, (1671 with coords, 219 without) | lots e.g. functionality
+4. Maina(2019) Kemri | 1734 | 40 | coords | no attributes
+5. HDX latest (MoH 2016) | 1464 | 53 | coords | codes & functional status
 
 The downloadable MoH data do not seem to have changed in the last year.
 
@@ -40,8 +42,22 @@ library(ggplot2)
 ```
 
 
-```{r, eval=TRUE, include=FALSE, warning=FALSE}
 
+```{r read-non-moh-data, eval=TRUE, include=FALSE, warning=FALSE}
+
+# moh data is read in next chunk because coords need to be converted before reading into sf
+
+filehsf <- "data-raw\\2021-05-ssd-hsfdashboard-copy.csv"
+dfhsf <- read.csv(filehsf, as.is=TRUE, check.names=FALSE)
+
+filehdx <- "data-raw\\list_hf_ss_moh_update_v1_20160404.csv"
+dfhdx <- read.csv(filehdx, as.is=TRUE, check.names=FALSE)
+
+
+
+```
+
+```{r, eval=TRUE, include=FALSE, warning=FALSE}
 
 # read in files
 filemoh <- "data-raw\\south_sudan_facility_info_2020-05-13.csv"
@@ -173,6 +189,21 @@ plot(gghsf)
 
 ```
 
+```{r, eval=TRUE, echo=FALSE, warning=FALSE, asis=TRUE, fig.width=9, fig.height=4}
+
+# facility data from HDX
+
+
+gghdx <- facility_types("south sudan", 
+                        datasource=dfhdx,
+                        type_column = "HF_TYPE",
+                        lonlat_columns = NULL,
+                        plot_title="Facility types, latest on HDX (from MoH 2016)",
+                        plot=FALSE)
+plot(gghdx)
+
+
+```
 
 ```{r moh_missing_coords, echo=FALSE, warning=FALSE, asis=TRUE, fig.width=9, fig.height=6}
 
