@@ -4,6 +4,7 @@ title: "Comparing South Sudan Health facility location data from different sourc
 author: "Andy South @afrimapr"
 date: "`r Sys.Date()`"
 output: pdf_document
+urlcolor: blue
 always_allow_html: true
 ---
 
@@ -12,22 +13,25 @@ DRAFT
 
 We currently have access to the following sources of health facility locations for South Sudan.
 
-1. downloaded from Ministry of Health website [https://www.southsudanhealth.info/](https://www.southsudanhealth.info/)
-1. healthsites.io in OpenStreetMap
-1. [South Sudan Health Service Functionality Dashboard](https://southsudanhsf.shinyapps.io/hsf_dashboard/) (locations not downloadable)
-1. collated data from published paper Maina(2019) 
+1. MoH   : downloaded from Ministry of Health website [https://www.southsudanhealth.info/](https://www.southsudanhealth.info/)
+1. OSM   : healthsites.io in OpenStreetMap
+1. HSF   : [South Sudan Health Service Functionality Dashboard](https://southsudanhsf.shinyapps.io/hsf_dashboard/) (locations not downloadable)
+1. Kemri : collated data from published paper Maina(2019) Kemri, hosted by WHO GMP
+1. HDX   : latest version on Humanitarian Data eXchange, labelled MoH 2016
 
 Numbers of locations per source.
 
 source  | num facilities | num hospitals | coords? | useful attributes
-------------- | ------- | ------- | --------------- | ---------
+------- | ------- | ------- | --------------- | ---------
 1. MoH     |  2889 | 130 | coords (2553 with, 336 without) |  Facility codes in 'Ext Ref' e.g. FC05040202
-2. OSM/healthsites    | 432 | 72 | coords | (few complete) beds,staff_doctors,staff nurses
-3. Health Service Functionality Dashboard | 1890 | 82 | not downloadable, (1671 with coords, 219 without) | lots e.g. functionality
-4. Maina(2019) Kemri | 1734 | 40 | coords | no attributes
-5. HDX latest (MoH 2016) | 1464 | 53 | coords | codes & functional status
+2. OSM    | 432 | 72 | coords | (few complete) beds,staff_doctors,staff nurses
+3. HSF | 1890 | 82 | not downloadable, (1671 with coords, 219 without) | lots e.g. functionality
+4. Kemri | 1734 | 40 | coords | no attributes
+5. HDX | 1464 | 53 | coords | codes & functional status
 
 The downloadable MoH data do not seem to have changed in the last year.
+
+Both the MoH and HSF websites have contact emails indicating that they will answer queries. We reached out to both twice over the course of a month and received no reply.
 
 The Functionality Dashboard says this about the data displayed there : "Facility data for this bulletin was kindly contributed by the Health Cluster partners, Health Pooled Fund (HPF), the International Committee of the Red Cross (ICRC), Management Sciences International (MSI), UNICEF, and UNHCR. Additional service availability data was extracted from the Ministry of Health DHIS2 platform for facilities without an implementing partner report. Most data was reported as of 31 March 2020, but the report date for each facility is indicated by hovering over a facility marker on the map. Implementing partners self-report on a quarterly basis service availability based predefined, standardized service availability data points and definitions. WHO merges the respective data sets and assigns a functionality level to each facility based on the criteria below."
 
@@ -38,6 +42,9 @@ library(afrihealthsites)
 library(knitr) #for kable
 library(dplyr)
 library(ggplot2)
+library(patchwork) #to arrange plots
+library(sf)
+library(afriadmin)
 
 ```
 
@@ -53,7 +60,7 @@ dfhsf <- read.csv(filehsf, as.is=TRUE, check.names=FALSE)
 filehdx <- "data-raw\\list_hf_ss_moh_update_v1_20160404.csv"
 dfhdx <- read.csv(filehdx, as.is=TRUE, check.names=FALSE)
 
-
+sfosm <- afrihealthsites("south sudan", datasource="healthsites", plot=FALSE)
 
 ```
 
@@ -82,29 +89,29 @@ names(dfcoords) <- c("Latitude", "Longitude")
 #bind back onto df
 dfssd <- cbind(dfssd, dfcoords)
 
-sfssd <- sf::st_as_sf(dfssd, coords=c("Longitude", "Latitude"), crs = 4326)
+sfmoh <- sf::st_as_sf(dfssd, coords=c("Longitude", "Latitude"), crs = 4326)
 
-#mapview::mapview(sfssd)
+#mapview::mapview(sfmoh)
 
 # I can add a 4 Tier classification here
 # add Tier 0 for unknown
 # TODO how best to do lookup ?
 # I'm tired this is a daft way of doing but works
 # I could put something into a function in afrihealhsites instead
-unique(sfssd$type) 
+unique(sfmoh$type) 
 #  [1] "Other"                        "Primary Health Care Centre"   "Primary Health Care Unit"    
 #  [4] "County Hospital"              "County Health Department"     "State Hospital"              
 #  [7] "Specialized Hospital/Clinic"  "Teaching Hospital"            "Health Training Institutions"
 # [10] "Ministry of Health"    
 
 
-# tiers <- afrihealthsites::tiers4(sfssd$type,
+# tiers <- afrihealthsites::tiers4(sfmoh$type,
 #                                  tier1=c("Primary Health Care Unit"),
 #                                  tier2=c("Primary Health Care Centre"),                                 
 #                                  to_return = "Tier_name"
 #                                  )
 # 
-# sfssd$Tier_name <- tiers
+# sfmoh$Tier_name <- tiers
 
 # moh_tier_lookup_pre <- data.frame("Other"=0,
 #                                   "Primary Health Care Centre"=2,
@@ -127,7 +134,18 @@ unique(sfssd$type)
 
 
 #save
-save(sfssd, file="sfssd.rda")
+save(sfmoh, file="sfmoh.rda")
+
+```
+
+```{r, eval=TRUE, include=FALSE, warning=FALSE}
+
+#get admin boundaries because need to use them to subset OSM data
+sfadm2county <- afriadmin("south sudan",level = 2,datasource = "geoboundaries",plot=FALSE)
+sfadm1state <- afriadmin("south sudan",level = 1,datasource = "geoboundaries",plot=FALSE)
+
+sfadm2juba <- dplyr::filter(sfadm2county, shapeName=="Juba")
+
 
 ```
 
@@ -139,7 +157,7 @@ save(sfssd, file="sfssd.rda")
 # just view MoH data
 sfmoh <- afrihealthsites("South Sudan", datasource=ssudan_file, lonlat_columns = "Location")
 
-sfmoh <- afrihealthsites("South Sudan", datasource=sfssd,                              
+sfmoh <- afrihealthsites("South Sudan", datasource=sfmoh,                              
                          type_column = 'type',
                          label_column = 'Facility')
 
@@ -158,12 +176,14 @@ sfmoh <- afrihealthsites("South Sudan", datasource=sfssd,
 # Plot counts of facility types from MoH data
 
 # pass the sf object directly
-ggssd <- facility_types("south sudan", 
-                        datasource=sfssd,
+ggmoh <- facility_types("south sudan", 
+                        datasource=sfmoh,
                         type_column = "type",
-                        plot_title="Facility types in South Sudan MoH data",
+                        plot_title=paste("Facility types, MoH www.southsudanhealth.info. Total:", nrow(sfmoh) ),
                         plot=FALSE)
-plot(ggssd)
+
+#save plot for patchwork in later chunk to align figs
+#plot(ggssd)
 
 
 
@@ -172,48 +192,75 @@ plot(ggssd)
 ```{r, eval=TRUE, echo=FALSE, warning=FALSE, asis=TRUE, fig.width=9, fig.height=4}
 
 # facility data (no coords) copied from WHO/MOH health service functionality (hsf) dashboard
-# 
+
 
 # read in files
 filehsf <- "data-raw\\2021-05-ssd-hsfdashboard-copy.csv"
 dfhsf <- read.csv(filehsf, as.is=TRUE, check.names=FALSE)
+#Beware first column is not named, if you don't name it can get this error from dplyr later
+#Error in initialize(...) : attempt to use zero-length variable name
+names(dfhsf)[1] <- "ID" 
 
 gghsf <- facility_types("south sudan", 
                         datasource=dfhsf,
                         type_column = "Facility type",
                         lonlat_columns = NULL,
-                        plot_title="Facility types, Health Service Functionality data (no coords)",
+                        plot_title=paste("Facility types, Health Service Functionality dashboard (no coords). Total:", nrow(dfhsf)),
                         plot=FALSE)
-plot(gghsf)
+
+#save plot for patchwork in later chunk to align figs
+#plot(gghsf)
+
+```
+
+```{r osm_type_frequencies, echo=FALSE, warnings=FALSE, asis=TRUE, fig.width=9, fig.height=6}
+
+# Plot counts of facility types from OSM
+
+ggosm <- facility_types("south sudan", 
+                        datasource="healthsites",
+                        type_filter=c('clinic','doctors','hospital'),
+                        #plot_title=paste("Facility types, MoH www.southsudanhealth.info. Total:", nrow(sfmoh) ),
+                        plot=FALSE)
+
+#save plot for patchwork in later chunk to align figs
+#plot(ggosm)
+
 
 
 ```
 
-```{r, eval=TRUE, echo=FALSE, warning=FALSE, asis=TRUE, fig.width=9, fig.height=4}
+
+```{r, eval=TRUE, echo=FALSE, warning=FALSE, asis=TRUE, fig.width=9, fig.height=14}
 
 # facility data from HDX
-
 
 gghdx <- facility_types("south sudan", 
                         datasource=dfhdx,
                         type_column = "HF_TYPE",
                         lonlat_columns = NULL,
-                        plot_title="Facility types, latest on HDX (from MoH 2016)",
+                        plot_title=paste("Facility types, latest HDX (from MoH 2016). Total:", nrow(dfhdx)),
                         plot=FALSE)
-plot(gghdx)
+#plot(gghdx)
 
+#align 3 figs using patchwork, set height to num types so that bar widths are the same 
+ggmoh / gghsf / gghdx /ggosm + plot_layout(heights = c(length(unique(sfmoh$type)),
+                                                       length(unique(dfhsf$`Facility type`)),
+                                                       length(unique(dfhdx$HF_TYPE)),
+                                                       3
+                                                       ))
 
 ```
 
 ```{r moh_missing_coords, echo=FALSE, warning=FALSE, asis=TRUE, fig.width=9, fig.height=6}
 
 
-sfssdnocoords <- sfssd[which(sfssd$Location=="0.00000, 0.00000"),] 
-sfssdcoords <- sfssd[which(sfssd$Location!="0.00000, 0.00000"),] 
+sfmohnocoords <- sfmoh[which(sfmoh$Location=="0.00000, 0.00000"),] 
+sfmohcoords <- sfmoh[which(sfmoh$Location!="0.00000, 0.00000"),] 
 
 # types for those without coords
 ggssd <- facility_types("south sudan", 
-                        datasource=sfssdnocoords,
+                        datasource=sfmohnocoords,
                         type_column = "type",
                         plot_title="336 Facilities in the MoH data with no coordinates",
                         plot=FALSE)
@@ -223,5 +270,31 @@ plot(ggssd)
 ```
 
 
-# TODO start to do subset analysis for Central Equatoria (incl. Juba)
+# Start to look at a subset analysis for Hospitals in Central Equatoria (incl. Juba) to make more manageable
+
+But tricky because MoH data uses Jubek state. Jubek State was a state in South Sudan that existed between 2 October 2015 and 22 February 2020. It was based on Juba county.
+
+```{r, eval=TRUE, echo=FALSE, warning=FALSE, asis=TRUE, fig.width=9, fig.height=14}
+
+
+#this selects just hospitals from MoH data
+#sfmoh2 <- dplyr::filter(sfmoh, grepl("Hospital", type))
+
+#7 hospitals in MoH
+sfmoh2 <- dplyr::filter(sfmoh, grepl("Hospital", type) & County == "Juba County")
+#13 Hospitals in HSF
+dfhsf2 <- dplyr::filter(dfhsf, grepl("Hospital", `Facility type`) & County == "Juba")
+
+#OSM need to do spatial operation because no column for county
+#TODO work out how to do this properly to return sf object
+#sfosm2 <- sf::st_intersects(sfadm2juba, sfosm)
+
+#align 3 figs using patchwork, set height to num types so that bar widths are the same 
+ggmoh / gghsf / gghdx /ggosm + plot_layout(heights = c(length(unique(sfmoh$type)),
+                                                       length(unique(dfhsf$`Facility type`)),
+                                                       length(unique(dfhdx$HF_TYPE)),
+                                                       3
+                                                       ))
+
+```
 
