@@ -14,26 +14,35 @@ DRAFT
 We currently have access to the following sources of health facility locations for South Sudan.
 
 1. MoH   : downloaded from Ministry of Health website [https://www.southsudanhealth.info/](https://www.southsudanhealth.info/)
-1. OSM   : healthsites.io in OpenStreetMap
 1. HSF   : [South Sudan Health Service Functionality Dashboard](https://southsudanhsf.shinyapps.io/hsf_dashboard/) (locations not downloadable)
+1. OSM   : healthsites.io in OpenStreetMap
 1. Kemri : collated data from published paper Maina(2019) Kemri, hosted by WHO GMP
 1. HDX   : latest version on Humanitarian Data eXchange, labelled MoH 2016
 
 Numbers of locations per source.
 
 source  | num facilities | num hospitals | coords? | useful attributes
-------- | ------- | ------- | --------------- | ---------
-1. MoH     |  2889 | 130 | coords (2553 with, 336 without) |  Facility codes in 'Ext Ref' e.g. FC05040202
+------- | ------ | ----- | ------------ | -----------
+1. MoH     |  2889 | 130 | coords (2553 with, 336 without) |  only Facility codes e.g. FC05040202
+3. HSF | 1890 | 82 | not downloadable, (1671 with coords, 219 without) | lots e.g. functionality, staff & bed numbers
 2. OSM    | 432 | 72 | coords | (few complete) beds,staff_doctors,staff nurses
-3. HSF | 1890 | 82 | not downloadable, (1671 with coords, 219 without) | lots e.g. functionality
 4. Kemri | 1734 | 40 | coords | no attributes
 5. HDX | 1464 | 53 | coords | codes & functional status
 
 The downloadable MoH data do not seem to have changed in the last year.
 
-Both the MoH and HSF websites have contact emails indicating that they will answer queries. We reached out to both twice over the course of a month and received no reply.
+Both the MoH and HSF websites have contact emails indicating that they will answer queries. We reached out to both twice in April May 2021 and received no reply.
 
 The Functionality Dashboard says this about the data displayed there : "Facility data for this bulletin was kindly contributed by the Health Cluster partners, Health Pooled Fund (HPF), the International Committee of the Red Cross (ICRC), Management Sciences International (MSI), UNICEF, and UNHCR. Additional service availability data was extracted from the Ministry of Health DHIS2 platform for facilities without an implementing partner report. Most data was reported as of 31 March 2020, but the report date for each facility is indicated by hovering over a facility marker on the map. Implementing partners self-report on a quarterly basis service availability based predefined, standardized service availability data points and definitions. WHO merges the respective data sets and assigns a functionality level to each facility based on the criteria below."
+
+Thus the HSF data seem to be the most comprehensive and up-to-date, but are not easily downloadable, do not have coordinates and do not have licencing information.
+
+I did copy & paste the HSF data from the 19 separate pages so that I can summarise it in the figures below. I am not sure whether we are in a position to share these further without any permission from WHO or MoH.
+
+I could try to join the data from HSF with that from the MoH website to add coordinates to the functionality data (and conversely to add attributes to the MoH data), but I'm not sure of the value of this given that it is re-doing something that someone in WHO/MoH has done already.
+
+The MoH website also has associated attribute data (e.g. staff numbers), that can be accessed by clicking on a facility entry, but these data do not appear in the download, so this is not a feasible method for obtaining attributes for large numbers of facilities. In addition the licensing for these data is not stated. 
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -103,6 +112,10 @@ unique(sfmoh$type)
 #  [4] "County Hospital"              "County Health Department"     "State Hospital"              
 #  [7] "Specialized Hospital/Clinic"  "Teaching Hospital"            "Health Training Institutions"
 # [10] "Ministry of Health"    
+
+#should "Specialized Hospital/Clinic" go into Tier0 unknown or Tier4 ?
+special <- dplyr::filter(sfmoh, type=="Specialized Hospital/Clinic")
+#29 mobile clinics, camp clinics, eye clinics, IDP clinic, children hospital
 
 
 # note that types not passed to 1 tier go into tier0 unknown
@@ -254,15 +267,30 @@ plot(ggssd)
 ```
 
 
-# Start to look at a subset analysis for Hospitals in Central Equatoria (incl. Juba) to make more manageable
 
-But tricky because MoH data uses Jubek state. Jubek State was a state in South Sudan that existed between 2 October 2015 and 22 February 2020. It was based on Juba county.
 
 ```{r, eval=TRUE, echo=FALSE, warning=FALSE, asis=TRUE, fig.width=9, fig.height=14}
 
+# hospitals alone
 
-#this selects just hospitals from MoH data
-#sfmoh2 <- dplyr::filter(sfmoh, grepl("Hospital", type))
+#this selects just hospitals from MoH (130) & HSF (82) & OSM () data
+sfmoh_hosp <- dplyr::filter(sfmoh, grepl("Hospital", type))
+dfhsf_hosp <- dplyr::filter(dfhsf, grepl("Hospital", `Facility type`))
+sfosm_hosp <- dplyr::filter(sfosm, grepl("hospital", amenity))
+
+```
+
+
+
+
+```{r, eval=FALSE, echo=FALSE, warning=FALSE, asis=TRUE, fig.width=9, fig.height=14}
+
+#eval=FALSE while working on
+
+# Start to look at a subset analysis for Hospitals in Central Equatoria (incl. Juba) to make more manageable
+
+#Tricky because MoH data uses Jubek state. Jubek State was a state in South Sudan that existed between 2 October 2015 and 22 February 2020. It was based on Juba county.
+
 
 #7 hospitals in MoH
 sfmoh2 <- dplyr::filter(sfmoh, grepl("Hospital", type) & County == "Juba County")
@@ -272,6 +300,7 @@ dfhsf2 <- dplyr::filter(dfhsf, grepl("Hospital", `Facility type`) & County == "J
 #OSM need to do spatial operation because no column for county
 #TODO work out how to do this properly to return sf object
 #sfosm2 <- sf::st_intersects(sfadm2juba, sfosm)
+
 
 #align 3 figs using patchwork, set height to num types so that bar widths are the same 
 ggmoh / gghsf / gghdx /ggosm + plot_layout(heights = c(length(unique(sfmoh$type)),
