@@ -14,12 +14,14 @@ DRAFT
 We currently have access to the following sources of health facility locations for South Sudan.
 
 1. MoH   : downloaded from Ministry of Health website [https://www.southsudanhealth.info/](https://www.southsudanhealth.info/)
-1. HSF   : [South Sudan Health Service Functionality Dashboard](https://southsudanhsf.shinyapps.io/hsf_dashboard/) (locations not downloadable)
+1. HSF   : [South Sudan Health Service Functionality Dashboard](https://southsudanhsf.shinyapps.io/hsf_dashboard/) (locations not downloadable, licensing uncertain)
 1. OSM   : healthsites.io in OpenStreetMap
 1. Kemri : collated data from published paper Maina(2019) Kemri, hosted by WHO GMP
 1. HDX   : latest version on Humanitarian Data eXchange, labelled MoH 2016
 
-Numbers of locations per source.
+For now we will focus mostly on the top three, because the latter two are older.
+
+Table 1. Numbers of facility locations per source.
 
 source  | num facilities | num hospitals | coords? | useful attributes
 ------- | ------ | ----- | ------------ | -----------
@@ -65,20 +67,44 @@ library(afriadmin)
 
 filehsf <- "data-raw\\2021-05-ssd-hsfdashboard-copy.csv"
 dfhsf <- read.csv(filehsf, as.is=TRUE, check.names=FALSE)
+#Beware first column is not named, if you don't name it can get this error from dplyr later
+#Error in initialize(...) : attempt to use zero-length variable name
+names(dfhsf)[1] <- "ID" 
 
 filehdx <- "data-raw\\list_hf_ss_moh_update_v1_20160404.csv"
 dfhdx <- read.csv(filehdx, as.is=TRUE, check.names=FALSE)
 
 sfosm <- afrihealthsites("south sudan", datasource="healthsites", plot=FALSE)
 
+
+#as.data.frame(names(dfhsf))
+# "OPD" "EPI"                      "ANC"                      "PNC"                      "SBA"                     
+# [13] "BEmONC"                   "CEmONC"                   "FP"                       "PMTCT"                   
+# [17] "ART"                      "TB"                       "BHI"                      "Inpatient - Paeds"       
+# [21] "Inpatient - Adult"        "Basic surgery"            "MHPSS"                    "SGBV"                    
+# [25] "NCD"                      "Nut. OTP"                 "Nut. TSFP"                "Nut. SC"                 
+# [29] "Laboratory"               "Disability"               "# Clinical staff"         "Essential meds stockout" 
+# [33] "FP stockout"              "Vaccine stockout"         "Ambulance access"         "# Inpatient beds - adult"
+# [37] "# Inpatient beds - paeds" "Electricity"              "Latrine"                  "Dedicated mobile phone"  
+# [41] "EPI refrigerator"         "Protected water source"
+
 ```
+
+The HSF data has the richest attributes with these column names :
+
+```{r, eval=TRUE, include=TRUE, echo=FALSE, warning=FALSE, comment=NA}
+
+names(dfhsf)
+#kable(names(dfhsf))
+
+```
+
 
 ```{r, eval=TRUE, include=FALSE, warning=FALSE}
 
 # read in files
 filemoh <- "data-raw\\south_sudan_facility_info_2020-05-13.csv"
 dfssd <- read.csv(filemoh, as.is=TRUE, check.names=FALSE)
-
 
 #ssudan has a single location column containing coords divided by commas as strings 
 # fair few coords at null island 0,0
@@ -112,6 +138,9 @@ unique(sfmoh$type)
 #  [4] "County Hospital"              "County Health Department"     "State Hospital"              
 #  [7] "Specialized Hospital/Clinic"  "Teaching Hospital"            "Health Training Institutions"
 # [10] "Ministry of Health"    
+unique(dfhsf$`Facility type`) 
+
+# PHCC, PHCU, Hospital, Mobile  
 
 #should "Specialized Hospital/Clinic" go into Tier0 unknown or Tier4 ?
 special <- dplyr::filter(sfmoh, type=="Specialized Hospital/Clinic")
@@ -129,6 +158,8 @@ tiers <- afrihealthsites::tiers4(sfmoh$type,
 
 sfmoh$Tier_name <- tiers
 
+unique(sfmoh$Tier_name)
+#Tier0 unknown, Tier2 health centre, Tier1 health post, Tier3 provincial hospital, Tier4 central hospital   
 
 #save
 save(sfmoh, file="sfmoh.rda")
@@ -191,12 +222,12 @@ ggmoh <- facility_types("south sudan",
 # facility data (no coords) copied from WHO/MOH health service functionality (hsf) dashboard
 
 
-# read in files
-filehsf <- "data-raw\\2021-05-ssd-hsfdashboard-copy.csv"
-dfhsf <- read.csv(filehsf, as.is=TRUE, check.names=FALSE)
+# read in files, now done earlier
+#filehsf <- "data-raw\\2021-05-ssd-hsfdashboard-copy.csv"
+#dfhsf <- read.csv(filehsf, as.is=TRUE, check.names=FALSE)
 #Beware first column is not named, if you don't name it can get this error from dplyr later
 #Error in initialize(...) : attempt to use zero-length variable name
-names(dfhsf)[1] <- "ID" 
+#names(dfhsf)[1] <- "ID" 
 
 gghsf <- facility_types("south sudan", 
                         datasource=dfhsf,
@@ -240,8 +271,28 @@ gghdx <- facility_types("south sudan",
                         plot=FALSE)
 #plot(gghdx)
 
+#set xmax to be the same for all plots
+gg1 <- ggmoh
+gg2 <- gghsf
+gg3 <- gghdx
+gg4 <- ggosm
+
+#hack to find max xlim for each object
+#TODO make this less hacky ! it will probably fail when ggplot changes
+max_x1 <- max(ggplot_build(gg1)$layout$panel_params[[1]]$x$continuous_range)
+max_x2 <- max(ggplot_build(gg2)$layout$panel_params[[1]]$x$continuous_range)
+max_x3 <- max(ggplot_build(gg3)$layout$panel_params[[1]]$x$continuous_range)
+max_x4 <- max(ggplot_build(gg4)$layout$panel_params[[1]]$x$continuous_range)
+#set xmax for all plots to this
+max_x <- max(max_x1,max_x2,max_x3,max_x4, na.rm=TRUE)
+gg1 <- gg1 + xlim(c(0,max_x))
+gg2 <- gg2 + xlim(c(0,max_x))
+gg3 <- gg3 + xlim(c(0,max_x))
+gg4 <- gg4 + xlim(c(0,max_x))
+
 #align 3 figs using patchwork, set height to num types so that bar widths are the same 
-ggmoh / gghsf / gghdx /ggosm + plot_layout(heights = c(length(unique(sfmoh$type)),
+#ggmoh / gghsf / gghdx /ggosm + plot_layout(heights = c(length(unique(sfmoh$type)),
+gg1 / gg2 / gg3 / gg4 + plot_layout(heights = c(length(unique(sfmoh$type)),                 
                                                        length(unique(dfhsf$`Facility type`)),
                                                        length(unique(dfhdx$HF_TYPE)),
                                                        3
@@ -280,14 +331,26 @@ sfosm_hosp <- dplyr::filter(sfosm, grepl("hospital", amenity))
 
 ```
 
+\newpage
 
+# Subsetting Hospitals in Juba county for initial detailed comparison
 
+This shows that, although some are shared, hospital names differ between the 3 sources.
 
-```{r, eval=FALSE, echo=FALSE, warning=FALSE, asis=TRUE, fig.width=9, fig.height=14}
+It gives an idea of the magnitude of the problem of trying to combine data sources, and points to the potential folly of trying to repeat data cleaning that has already been done to arrive at the Health Service Functionality (hsf) dataset.
 
-#eval=FALSE while working on
+Even when names are shared between data sources they may differ slightly e.g. 	
+moh : El Sabbah Children Hosp    
+hsf : El-Sabah Children Hospital
 
-# Start to look at a subset analysis for Hospitals in Central Equatoria (incl. Juba) to make more manageable
+The OpenStreetMap data show examples of : 
+
+1. un-named facilities (row1)
+1. facilities that appear not to be hospitals (e.g. row7 primary health care unit, row8 high court & row14 small clinic)
+1. facilities now closed (row18)
+
+```{r, eval=TRUE, echo=FALSE, warning=FALSE, message=FALSE, asis=TRUE, fig.width=9, fig.height=14}
+
 
 #Tricky because MoH data uses Jubek state. Jubek State was a state in South Sudan that existed between 2 October 2015 and 22 February 2020. It was based on Juba county.
 
@@ -297,17 +360,53 @@ sfmoh2 <- dplyr::filter(sfmoh, grepl("Hospital", type) & County == "Juba County"
 #13 Hospitals in HSF
 dfhsf2 <- dplyr::filter(dfhsf, grepl("Hospital", `Facility type`) & County == "Juba")
 
-#OSM need to do spatial operation because no column for county
-#TODO work out how to do this properly to return sf object
-#sfosm2 <- sf::st_intersects(sfadm2juba, sfosm)
+# OSM need to do spatial operation because no column for county
+# aha can use afrihealthsites function
+# initially it only worked with admin1 due to bug in afrihealthsites
+#19 hospitals in OSM
+sfosm2 <- afrihealthsites("south sudan", datasource="healthsites", plot=FALSE,
+                          hs_amenity=c('hospital'),
+                          admin_level=2, admin_names=c('Juba') )
+                          #admin_level=1, admin_names=c('Central Equatoria') )
 
+# this suggests there should be OSM hospitals within Juba county
+#mapview::mapview(list(sfosm_hosp, sfadm2county))
+
+x <- sort(sfmoh2$Facility)
+y <- sort(dfhsf2$Facility)
+z <- sort(sfosm2$name)
+n <- max(length(x), length(y), length(z))
+length(x) <- length(y) <- length(z) <- n
+
+dfnames <- cbind(row=1:n,
+                 moh=x,
+                 hsf=y,
+                 osm=z)
+
+options(knitr.kable.NA = '')
+
+kable(dfnames, caption="Juba county hospitals from different data sources")
+
+# dfnames <- data.frame(moh=sort(sfmoh2$Facility),
+#                       hsf=sort(dfhsf2$Facility),
+#                       osm=sort(sfosm2$Facility))
+# dfnames <- cbind(moh=sort(sfmoh2$Facility),
+#                       hsf=sort(dfhsf2$Facility),
+#                       osm=sort(sfosm2$name))
+
+
+
+                      
+# kable(sfmoh2$Facility)
+# kable(dfhsf2$Facility)
+# kable(sfosm2$Facility)
 
 #align 3 figs using patchwork, set height to num types so that bar widths are the same 
-ggmoh / gghsf / gghdx /ggosm + plot_layout(heights = c(length(unique(sfmoh$type)),
-                                                       length(unique(dfhsf$`Facility type`)),
-                                                       length(unique(dfhdx$HF_TYPE)),
-                                                       3
-                                                       ))
+# ggmoh / gghsf / gghdx /ggosm + plot_layout(heights = c(length(unique(sfmoh$type)),
+#                                                        length(unique(dfhsf$`Facility type`)),
+#                                                        length(unique(dfhdx$HF_TYPE)),
+#                                                        3
+#                                                        ))
 
 ```
 
