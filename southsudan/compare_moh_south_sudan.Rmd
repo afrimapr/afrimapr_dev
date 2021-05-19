@@ -105,32 +105,16 @@ unique(sfmoh$type)
 # [10] "Ministry of Health"    
 
 
-# tiers <- afrihealthsites::tiers4(sfmoh$type,
-#                                  tier1=c("Primary Health Care Unit"),
-#                                  tier2=c("Primary Health Care Centre"),                                 
-#                                  to_return = "Tier_name"
-#                                  )
-# 
-# sfmoh$Tier_name <- tiers
+# note that types not passed to 1 tier go into tier0 unknown
+tiers <- afrihealthsites::tiers4(sfmoh$type,
+                                 tier1=c("Primary Health Care Unit"),
+                                 tier2=c("Primary Health Care Centre"),
+                                 tier3=c("County Hospital"),
+                                 tier4=c("State Hospital", "Teaching Hospital"),
+                                 to_return = "Tier_name"
+                                 )
 
-# moh_tier_lookup_pre <- data.frame("Other"=0,
-#                                   "Primary Health Care Centre"=2,
-#                                   "Primary Health Care Unit"=1)
-# 
-# moh_tier_lookup <- as.data.frame(t(moh_tier_lookup_pre))
-
-#tst <- as.data.frame(t(data.frame("a"="b","c"="d")))
-#tst$x <- rownames(tst)
-
-#match returns a vector of the positions of (first) matches of its first argument in its second.
-#sftogo$facility_type_9 <- who_type_lookup$facility_type_9[ match(sftogo$`Facility type`,who_type_lookup$type_who) ]
-
-
-
-# df_who_sites$Tier_name <- ifelse(df_who_sites$Tier==1,"Tier1 health post",
-#                             ifelse(df_who_sites$Tier==2,"Tier2 health center",
-#                             ifelse(df_who_sites$Tier==3,"Tier3 provincial hospital",
-#                             ifelse(df_who_sites$Tier==4,"Tier4 central hospital", NA))))
+sfmoh$Tier_name <- tiers
 
 
 #save
