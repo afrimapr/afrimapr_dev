@@ -14,7 +14,7 @@ DRAFT
 We currently have access to the following sources of health facility locations for South Sudan.
 
 1. MoH   : downloaded from Ministry of Health website [https://www.southsudanhealth.info/](https://www.southsudanhealth.info/)
-1. HSF   : [South Sudan Health Service Functionality Dashboard](https://southsudanhsf.shinyapps.io/hsf_dashboard/) (locations not downloadable, licensing uncertain)
+1. HSF   : [South Sudan Health Service Functionality Dashboard](https://southsudanhsf.shinyapps.io/hsf_dashboard/) (locations not downloadable, licensing uncertain). A collaboration between MoH & WHO.
 1. OSM   : healthsites.io in OpenStreetMap
 1. Kemri : collated data from published paper Maina(2019) Kemri, hosted by WHO GMP
 1. HDX   : latest version on Humanitarian Data eXchange, labelled MoH 2016
@@ -33,7 +33,7 @@ source  | num facilities | num hospitals | coords? | useful attributes
 
 The downloadable MoH data do not seem to have changed in the last year.
 
-Both the MoH and HSF websites have contact emails indicating that they will answer queries. We reached out to both twice in April May 2021 and received no reply.
+Both the MoH and HSF websites have contact emails indicating that they will answer queries. We reached out to both twice in April May 2021 and received no reply. We also emailed senior members of the WHO GIS team and received no reply.
 
 The Functionality Dashboard says this about the data displayed there : "Facility data for this bulletin was kindly contributed by the Health Cluster partners, Health Pooled Fund (HPF), the International Committee of the Red Cross (ICRC), Management Sciences International (MSI), UNICEF, and UNHCR. Additional service availability data was extracted from the Ministry of Health DHIS2 platform for facilities without an implementing partner report. Most data was reported as of 31 March 2020, but the report date for each facility is indicated by hovering over a facility marker on the map. Implementing partners self-report on a quarterly basis service availability based predefined, standardized service availability data points and definitions. WHO merges the respective data sets and assigns a functionality level to each facility based on the criteria below."
 
@@ -410,3 +410,26 @@ kable(dfnames, caption="Juba county hospitals from different data sources")
 
 ```
 
+\newpage
+
+# Exploring potentially useful attributes from Health Service Functionality data
+
+(Note, it is not clear whether we have permission to use these data in this way).
+
+```{r hsf_electricity, echo=FALSE, warning=FALSE, asis=TRUE, fig.width=9, fig.height=5}
+
+dfhsf$Electricity[ which(dfhsf$Electricity == "") ] <- "unknown"
+
+dfhsf$Electricity <- factor(dfhsf$Electricity, levels = c("Available", "unknown", "Not Available"))
+
+gg <- ggplot2::ggplot(dfhsf, aes(y = `Facility type`, fill = `Electricity`))
+
+gg <- gg + geom_bar(show.legend=TRUE) +
+      labs(title="HSF data, Electricity availability by Facility type") +
+      scale_fill_manual(values=c("darkgreen", "darkorange", "darkred")) +
+      theme_minimal() 
+      
+gg
+
+
+```
