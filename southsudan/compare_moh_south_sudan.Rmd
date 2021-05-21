@@ -438,6 +438,25 @@ kable(dfnames, caption="Juba county hospitals from different data sources")
 
 (Note, it is not clear whether we have permission to use these data in this way).
 
+```{r hsf_functionality, echo=FALSE, warning=FALSE, asis=TRUE, fig.width=9, fig.height=5}
+
+dfhsf$Functionality[ which(dfhsf$Functionality == "") ] <- "unknown"
+
+dfhsf$Functionality <- factor(dfhsf$Functionality, levels = c(	
+"Highly Functional", "Moderate", "Limited", "unknown", "Non-Functional"))
+
+gg <- ggplot2::ggplot(dfhsf, aes(y = `Facility type`, fill = `Functionality`))
+
+gg <- gg + geom_bar(show.legend=TRUE) +
+      labs(title="HSF data, Functionality by Facility type") +
+      scale_fill_manual(values=c("green4","green3","darkorange", "white","darkred")) +
+      theme_minimal() 
+      
+gg
+
+
+```
+
 ```{r hsf_electricity, echo=FALSE, warning=FALSE, asis=TRUE, fig.width=9, fig.height=5}
 
 dfhsf$Electricity[ which(dfhsf$Electricity == "") ] <- "unknown"
