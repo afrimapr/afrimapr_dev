@@ -1,5 +1,5 @@
 ---
-title: "Comparing South Sudan Health facility location data from different sources"
+title: "Can open South Sudan Health facility location data help inform covid vaccine distribution ?"
 #output: html_document
 author: "Andy South @afrimapr"
 date: "`r Sys.Date()`"
@@ -11,7 +11,29 @@ always_allow_html: true
 DRAFT
 [Code for this document](https://github.com/afrimapr/afrimapr_dev/blob/master/compare_moh_southsudan.Rmd)
 
-We currently have access to the following sources of health facility locations for South Sudan.
+# Summary
+
+This draft report is part of a [pilot project run by MapAction](https://docs.google.com/document/d/1Rh9wCqHvJX8GLG68OAj3CzEMyvDXo-dc2rt7GTUQY6g/preview) funded through a private donor.
+
+The purposes of the pilot project are:
+
+* an immediately useful country data readiness package, documented and publicly available;
+* to be in a better position to respond extremely quickly to COVAX’s needs; 
+* and to build learning and community practice around the process to inform future work.
+
+This report focuses on the availability of health facility data to inform covid vaccine distribution. It aims to inform the choice of data to include in the data package created by the pilot project.
+
+The initial (draft) conclusion is that the data downloadable from the Ministry of Health website at [https://www.southsudanhealth.info/](https://www.southsudanhealth.info/) (**2889** recorded facilities) would be the most appropriate to include in the pilot data package. This is despite those data being dated and superceded locally by a cleaner dataset visible in the [South Sudan Health Service Functionality (HSF) Dashboard](https://southsudanhsf.shinyapps.io/hsf_dashboard/). The HSF data has fewer facilities (**1890**) with many more attributes, processed in collaboration between WHO and the Ministry of Health. Unfortunately, we do not have permission to use and/or redistribute these latter data, despite reaching out.   
+
+The data stored in OpenStreetMap/healthsites.io are much sparser (**156**). We recommend improving the data in OpenStreetMap/healthsites.io as a longer term solution. For this project it is unlikely to be useful to combine the two datasets, partly because of technical difficulties in doing so, and partly because, when there are disagreements, there is no clear rationale for establishing which source is likely to be the more correct.   
+
+If we were able to gain permission to access and use the data displayed in the [South Sudan Health Service Functionality Dashboard](https://southsudanhsf.shinyapps.io/hsf_dashboard/) (and summarised below) using them would be much better.     
+
+\newpage
+
+# Exploring available Health facility data
+
+The following sources of health facility locations for South Sudan are available.
 
 1. MoH   : downloaded from Ministry of Health website [https://www.southsudanhealth.info/](https://www.southsudanhealth.info/)
 1. HSF   : [South Sudan Health Service Functionality Dashboard](https://southsudanhsf.shinyapps.io/hsf_dashboard/) (locations not downloadable, licensing uncertain). A collaboration between MoH & WHO.
@@ -19,7 +41,7 @@ We currently have access to the following sources of health facility locations f
 1. Kemri : collated data from published paper Maina(2019) Kemri, hosted by WHO GMP
 1. HDX   : latest version on Humanitarian Data eXchange, labelled MoH 2016
 
-For now we will focus mostly on the top three, because the latter two are older.
+For now I will focus mostly on the top three, because the latter two are older.
 
 Table 1. Numbers of facility locations per source.
 
