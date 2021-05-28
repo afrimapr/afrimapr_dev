@@ -9,7 +9,9 @@ always_allow_html: true
 ---
 
 DRAFT
-[Code for this document](https://github.com/afrimapr/afrimapr_dev/blob/master/compare_moh_southsudan.Rmd)
+
+[Code for this document](https://github.com/afrimapr/afrimapr_dev/blob/master/compare_moh_southsudan.Rmd)    
+[Packaged MoH Health facility data](https://github.com/afrimapr/afrimapr_dev/tree/master/southsudan/data-out) (with added Tier_name classification - see below)
 
 # Summary
 
@@ -327,7 +329,7 @@ gg1 / gg2 / gg3 / gg4 + plot_layout(heights = c(length(unique(sfmoh$type)),
 
 ```
 
-```{r moh_missing_coords, echo=FALSE, warning=FALSE, asis=TRUE, fig.width=9, fig.height=6}
+```{r moh_missing_coords, echo=FALSE, warning=FALSE, asis=TRUE, fig.width=9, fig.height=5}
 
 
 sfmohnocoords <- sfmoh[which(sfmoh$Location=="0.00000, 0.00000"),] 
@@ -344,7 +346,17 @@ plot(ggssd)
 
 ```
 
-```{r moh_4tiers, echo=FALSE, warning=FALSE, asis=TRUE, fig.width=9, fig.height=6}
+I've added a 5 Tier classification (Tier_name) that any local classification can be converted to. 
+
+* Tier0 unknown 
+* Tier2 health centre 
+* Tier1 health post 
+* Tier3 provincial hospital 
+* Tier4 central hospital. 
+
+This similar to the 4 tier classification used in the [Falchetta(2020)](https://www.pnas.org/content/117/50/31760) paper, it just adds a Tier0 for unknown. 
+
+```{r moh_4tiers, echo=FALSE, warning=FALSE, asis=TRUE, fig.width=9, fig.height=4}
 
 
 # types for those without coords
