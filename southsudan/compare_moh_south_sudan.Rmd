@@ -186,6 +186,11 @@ unique(sfmoh$Tier_name)
 #save
 save(sfmoh, file="sfmoh.rda")
 
+#also write this as a geopackage
+filename <- r"(data-out/ssd-moh-afrimapr-2021-05-28.gpkg)" #windows safe paths
+sf::write_sf(sfmoh, filename)
+
+
 ```
 
 ```{r, eval=TRUE, include=FALSE, warning=FALSE}
@@ -338,6 +343,23 @@ plot(ggssd)
 
 
 ```
+
+```{r moh_4tiers, echo=FALSE, warning=FALSE, asis=TRUE, fig.width=9, fig.height=6}
+
+
+# types for those without coords
+ggssd_tiers <- facility_types("south sudan", 
+                        datasource=sfmoh,
+                        type_column = "Tier_name",
+                        plot_title="MoH data reclassified to 4 Tiers of Falchetta(2020)",
+                        plot=FALSE)
+plot(ggssd_tiers)
+
+
+```
+
+
+
 
 
 
